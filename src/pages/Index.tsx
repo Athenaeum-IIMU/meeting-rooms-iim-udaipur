@@ -133,10 +133,25 @@ const Index = () => {
               </Button>
             ))}
           </div>
-          <Button onClick={() => { setSelectedSlot({}); setModalOpen(true); }} className="gap-1">
-            <Plus className="h-4 w-4" /> Book
-          </Button>
         </div>
+      </div>
+
+      <Button
+        onClick={() => { setSelectedSlot({}); setModalOpen(true); }}
+        className="fixed bottom-6 right-6 z-50 gap-1 shadow-lg rounded-full px-6 h-12"
+        size="lg"
+      >
+        <Plus className="h-5 w-5" /> Book
+        </div>
+      </div>
+
+      {/* Legend */}
+      <div className="flex flex-wrap gap-4 text-xs text-muted-foreground">
+        <span className="flex items-center gap-1"><span className="h-3 w-3 rounded border border-green-500 bg-green-500/20" /> Approved</span>
+        <span className="flex items-center gap-1"><span className="h-3 w-3 rounded border border-yellow-500 bg-yellow-500/20" /> Pending Admin</span>
+        <span className="flex items-center gap-1"><span className="h-3 w-3 rounded border border-orange-400 bg-orange-400/20" /> Pending Members</span>
+        <span className="flex items-center gap-1"><span className="h-3 w-3 rounded border border-red-500 bg-red-500/20" /> Rejected</span>
+        <span className="flex items-center gap-1"><span className="h-3 w-3 rounded border border-dashed border-destructive/40 bg-destructive/10" /> Blocked</span>
       </div>
 
       <div className="overflow-auto rounded-lg border bg-card">
@@ -207,10 +222,10 @@ const Index = () => {
                       return (
                         <div
                           key={room.id}
-                          className="mb-0.5 cursor-pointer rounded px-1 py-0.5 text-[10px] text-muted-foreground/50 hover:bg-primary/10 hover:text-primary"
+                          className="mb-0.5 cursor-pointer rounded px-1 py-0.5 text-[10px] text-muted-foreground/40 hover:bg-primary/10 hover:text-primary"
                           onClick={() => handleSlotClick(dateStr, hour, room.id)}
                         >
-                          + {room.name}
+                          {room.name}
                         </div>
                       );
                     })}
@@ -220,15 +235,6 @@ const Index = () => {
             </div>
           ))}
         </div>
-      </div>
-
-      {/* Legend */}
-      <div className="flex flex-wrap gap-4 text-xs text-muted-foreground">
-        <span className="flex items-center gap-1"><span className="h-3 w-3 rounded border border-green-500 bg-green-500/20" /> Approved</span>
-        <span className="flex items-center gap-1"><span className="h-3 w-3 rounded border border-yellow-500 bg-yellow-500/20" /> Pending Admin</span>
-        <span className="flex items-center gap-1"><span className="h-3 w-3 rounded border border-orange-400 bg-orange-400/20" /> Pending Members</span>
-        <span className="flex items-center gap-1"><span className="h-3 w-3 rounded border border-red-500 bg-red-500/20" /> Rejected</span>
-        <span className="flex items-center gap-1"><span className="h-3 w-3 rounded border border-dashed border-destructive/40 bg-destructive/10" /> Blocked</span>
       </div>
 
       <BookingModal
