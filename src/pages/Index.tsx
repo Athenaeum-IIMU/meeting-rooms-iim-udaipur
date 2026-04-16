@@ -142,8 +142,7 @@ const Index = () => {
         size="lg"
       >
         <Plus className="h-5 w-5" /> Book
-        </div>
-      </div>
+      </Button>
 
       {/* Legend */}
       <div className="flex flex-wrap gap-4 text-xs text-muted-foreground">
