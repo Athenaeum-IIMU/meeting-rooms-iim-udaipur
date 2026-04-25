@@ -1,0 +1,1 @@
+DROP POLICY IF EXISTS "Authenticated can create notifications" ON public.notifications;
