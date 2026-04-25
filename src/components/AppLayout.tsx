@@ -3,6 +3,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { CalendarDays, ClipboardList, Shield, LogOut, Menu, X } from "lucide-react";
 import { useState } from "react";
+import NotificationBell from "@/components/NotificationBell";
 
 const AppLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { profile, isAdmin, signOut } = useAuth();
@@ -48,6 +49,7 @@ const AppLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
             <span className="hidden text-sm text-muted-foreground md:block">
               {profile?.full_name || profile?.email}
             </span>
+            <NotificationBell />
             <Button variant="ghost" size="icon" onClick={signOut} title="Sign out">
               <LogOut className="h-4 w-4" />
             </Button>

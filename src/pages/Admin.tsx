@@ -12,7 +12,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useRooms } from "@/hooks/useRooms";
 import { useToast } from "@/hooks/use-toast";
-import { Check, X, Shield, Ban, CalendarDays, Clock, MapPin, Users } from "lucide-react";
+import { Check, X, Shield, Ban, CalendarDays, Clock, MapPin, Users, Pencil } from "lucide-react";
+import AdminEditBookingModal from "@/components/AdminEditBookingModal";
 
 const Admin = () => {
   const { user, isAdmin } = useAuth();
@@ -20,6 +21,7 @@ const Admin = () => {
   const { toast } = useToast();
   const { data: rooms } = useRooms();
   const [blockModalOpen, setBlockModalOpen] = useState(false);
+  const [editingBooking, setEditingBooking] = useState<any | null>(null);
 
   // Pending admin bookings ordered by created_at (first come first serve)
   const { data: pendingBookings } = useQuery({
@@ -166,6 +168,14 @@ const Admin = () => {
                     </Button>
                     <Button
                       size="sm"
+                      variant="outline"
+                      onClick={() => setEditingBooking(booking)}
+                      className="gap-1"
+                    >
+                      <Pencil className="h-3 w-3" /> Edit
+                    </Button>
+                    <Button
+                      size="sm"
                       variant="destructive"
                       onClick={() => rejectBooking.mutate(booking.id)}
                       className="gap-1"
@@ -200,7 +210,19 @@ const Admin = () => {
                       by {(booking.profiles as any)?.full_name || (booking.profiles as any)?.email}
                     </span>
                   </div>
-                  <Badge className={statusColor[booking.status] || ""}>{booking.status}</Badge>
+                  <div className="flex items-center gap-2">
+                    <Badge className={statusColor[booking.status] || ""}>{booking.status}</Badge>
+                    {!["cancelled", "rejected"].includes(booking.status) && (
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => setEditingBooking(booking)}
+                        className="h-7 gap-1"
+                      >
+                        <Pencil className="h-3 w-3" /> Edit
+                      </Button>
+                    )}
+                  </div>
                 </CardContent>
               </Card>
             );
@@ -234,6 +256,12 @@ const Admin = () => {
           />
         </TabsContent>
       </Tabs>
+
+      <AdminEditBookingModal
+        open={!!editingBooking}
+        onClose={() => setEditingBooking(null)}
+        booking={editingBooking}
+      />
     </div>
   );
 };

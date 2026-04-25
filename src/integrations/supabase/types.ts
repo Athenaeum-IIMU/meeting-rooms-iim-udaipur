@@ -134,6 +134,39 @@ export type Database = {
           },
         ]
       }
+      notifications: {
+        Row: {
+          body: string
+          booking_id: string | null
+          created_at: string
+          id: string
+          read: boolean
+          title: string
+          type: string
+          user_id: string
+        }
+        Insert: {
+          body: string
+          booking_id?: string | null
+          created_at?: string
+          id?: string
+          read?: boolean
+          title: string
+          type: string
+          user_id: string
+        }
+        Update: {
+          body?: string
+          booking_id?: string | null
+          created_at?: string
+          id?: string
+          read?: boolean
+          title?: string
+          type?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           created_at: string
@@ -254,6 +287,16 @@ export type Database = {
           _user_id: string
         }
         Returns: boolean
+      }
+      notify_user_by_email: {
+        Args: {
+          p_body: string
+          p_booking_id?: string
+          p_email: string
+          p_title: string
+          p_type: string
+        }
+        Returns: undefined
       }
     }
     Enums: {
