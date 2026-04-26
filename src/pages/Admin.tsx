@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -22,6 +23,20 @@ const Admin = () => {
   const { data: rooms } = useRooms();
   const [blockModalOpen, setBlockModalOpen] = useState(false);
   const [editingBooking, setEditingBooking] = useState<any | null>(null);
+  const [searchParams] = useSearchParams();
+  const highlightId = searchParams.get("booking");
+  const highlightRef = useRef<HTMLDivElement | null>(null);
+  const [activeTab, setActiveTab] = useState("pending");
+
+  useEffect(() => {
+    if (!highlightId) return;
+    // Switch to "all" tab so the highlighted booking is reachable regardless of status
+    setActiveTab("all");
+    const t = setTimeout(() => {
+      highlightRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+    }, 150);
+    return () => clearTimeout(t);
+  }, [highlightId]);
 
   // Pending admin bookings ordered by created_at (first come first serve)
   const { data: pendingBookings } = useQuery({
@@ -111,7 +126,7 @@ const Admin = () => {
     <div className="space-y-6">
       <h1 className="text-2xl font-bold">Admin Panel</h1>
 
-      <Tabs defaultValue="pending">
+      <Tabs value={activeTab} onValueChange={setActiveTab}>
         <TabsList>
           <TabsTrigger value="pending">
             Pending Approvals {pendingBookings?.length ? `(${pendingBookings.length})` : ""}
@@ -124,8 +139,14 @@ const Admin = () => {
           {pendingBookings?.length === 0 && (
             <p className="text-sm text-muted-foreground">No pending approvals.</p>
           )}
-          {pendingBookings?.map((booking, index) => (
-            <Card key={booking.id}>
+          {pendingBookings?.map((booking, index) => {
+            const isH = booking.id === highlightId;
+            return (
+            <Card
+              key={booking.id}
+              ref={isH ? highlightRef : undefined}
+              className={isH ? "ring-2 ring-primary ring-offset-2" : ""}
+            >
               <CardContent className="p-4">
                 <div className="flex items-start justify-between">
                   <div className="space-y-1">
@@ -186,7 +207,8 @@ const Admin = () => {
                 </div>
               </CardContent>
             </Card>
-          ))}
+            );
+          })}
         </TabsContent>
 
         <TabsContent value="all" className="space-y-3 mt-4">
@@ -198,8 +220,13 @@ const Admin = () => {
               rejected: "bg-red-100 text-red-800",
               cancelled: "bg-gray-100 text-gray-800",
             };
+            const isH = booking.id === highlightId;
             return (
-              <Card key={booking.id}>
+              <Card
+                key={booking.id}
+                ref={isH ? highlightRef : undefined}
+                className={isH ? "ring-2 ring-primary ring-offset-2" : ""}
+              >
                 <CardContent className="flex items-center justify-between p-3">
                   <div className="text-sm">
                     <span className="font-medium">{booking.title}</span>{" "}
