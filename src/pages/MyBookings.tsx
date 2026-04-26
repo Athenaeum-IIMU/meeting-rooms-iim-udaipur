@@ -1,3 +1,5 @@
+import { useEffect, useRef } from "react";
+import { useSearchParams } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -19,6 +21,15 @@ const MyBookings = () => {
   const { user, profile } = useAuth();
   const queryClient = useQueryClient();
   const { toast } = useToast();
+  const [searchParams] = useSearchParams();
+  const highlightId = searchParams.get("booking");
+  const highlightRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    if (highlightId && highlightRef.current) {
+      highlightRef.current.scrollIntoView({ behavior: "smooth", block: "center" });
+    }
+  }, [highlightId]);
 
   // Bookings I created
   const { data: myBookings } = useQuery({
@@ -165,8 +176,17 @@ const MyBookings = () => {
         )}
         {myBookings?.map((booking) => {
           const badge = statusBadge[booking.status] || { variant: "outline" as const, label: booking.status };
+          const isHighlighted = booking.id === highlightId;
           return (
-            <Card key={booking.id}>
+            <Card
+              key={booking.id}
+              ref={isHighlighted ? highlightRef : undefined}
+              className={
+                isHighlighted
+                  ? "ring-2 ring-primary ring-offset-2 transition-all"
+                  : ""
+              }
+            >
               <CardContent className="p-4">
                 <div className="flex items-start justify-between">
                   <div className="space-y-1">
