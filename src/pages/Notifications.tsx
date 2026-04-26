@@ -9,14 +9,24 @@ import {
   useDeleteNotification,
 } from "@/hooks/useNotifications";
 import { formatDistanceToNow } from "date-fns";
+import { useNavigate } from "react-router-dom";
+import { useAuth } from "@/contexts/AuthContext";
 
 const Notifications = () => {
   const { data: notifications, isLoading } = useNotifications();
   const markRead = useMarkNotificationRead();
   const markAllRead = useMarkAllNotificationsRead();
   const deleteNotif = useDeleteNotification();
+  const navigate = useNavigate();
+  const { isAdmin } = useAuth();
 
   const unreadCount = notifications?.filter((n) => !n.read).length || 0;
+
+  const openNotif = (n: { id: string; read: boolean; booking_id: string | null }) => {
+    if (!n.read) markRead.mutate(n.id);
+    const target = isAdmin ? "/admin" : "/my-bookings";
+    navigate(n.booking_id ? `${target}?booking=${n.booking_id}` : target);
+  };
 
   return (
     <div className="space-y-4">
@@ -43,7 +53,13 @@ const Notifications = () => {
 
       <div className="space-y-2">
         {notifications?.map((n) => (
-          <Card key={n.id} className={!n.read ? "border-primary/40 bg-primary/5" : ""}>
+          <Card
+            key={n.id}
+            onClick={() => openNotif(n)}
+            className={`cursor-pointer transition hover:shadow-md ${
+              !n.read ? "border-primary/40 bg-primary/5" : ""
+            }`}
+          >
             <CardContent className="flex items-start gap-3 p-4">
               {!n.read && (
                 <Badge variant="default" className="mt-1 h-2 w-2 shrink-0 rounded-full p-0" />
@@ -60,7 +76,10 @@ const Notifications = () => {
                   <Button
                     variant="ghost"
                     size="icon"
-                    onClick={() => markRead.mutate(n.id)}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      markRead.mutate(n.id);
+                    }}
                     title="Mark read"
                   >
                     <Check className="h-4 w-4" />
@@ -69,7 +88,10 @@ const Notifications = () => {
                 <Button
                   variant="ghost"
                   size="icon"
-                  onClick={() => deleteNotif.mutate(n.id)}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    deleteNotif.mutate(n.id);
+                  }}
                   title="Delete"
                 >
                   <Trash2 className="h-4 w-4 text-destructive" />

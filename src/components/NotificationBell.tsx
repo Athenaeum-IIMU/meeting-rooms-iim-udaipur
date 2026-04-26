@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { Bell, Check, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -12,6 +12,7 @@ import {
   useDeleteNotification,
 } from "@/hooks/useNotifications";
 import { formatDistanceToNow } from "date-fns";
+import { useAuth } from "@/contexts/AuthContext";
 
 const NotificationBell = () => {
   const [open, setOpen] = useState(false);
@@ -19,8 +20,17 @@ const NotificationBell = () => {
   const markRead = useMarkNotificationRead();
   const markAllRead = useMarkAllNotificationsRead();
   const deleteNotif = useDeleteNotification();
+  const navigate = useNavigate();
+  const { isAdmin } = useAuth();
 
   const unreadCount = notifications?.filter((n) => !n.read).length || 0;
+
+  const handleClick = (n: { id: string; read: boolean; booking_id: string | null }) => {
+    if (!n.read) markRead.mutate(n.id);
+    setOpen(false);
+    const target = isAdmin ? "/admin" : "/my-bookings";
+    navigate(n.booking_id ? `${target}?booking=${n.booking_id}` : target);
+  };
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
@@ -61,7 +71,8 @@ const NotificationBell = () => {
               {notifications.slice(0, 15).map((n) => (
                 <li
                   key={n.id}
-                  className={`group flex gap-2 p-3 text-sm hover:bg-muted/50 ${
+                  onClick={() => handleClick(n)}
+                  className={`group flex cursor-pointer gap-2 p-3 text-sm hover:bg-muted/50 ${
                     !n.read ? "bg-primary/5" : ""
                   }`}
                 >
@@ -76,7 +87,10 @@ const NotificationBell = () => {
                   <div className="flex flex-col gap-1 opacity-0 group-hover:opacity-100">
                     {!n.read && (
                       <button
-                        onClick={() => markRead.mutate(n.id)}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          markRead.mutate(n.id);
+                        }}
                         className="text-muted-foreground hover:text-primary"
                         title="Mark read"
                       >
@@ -84,7 +98,10 @@ const NotificationBell = () => {
                       </button>
                     )}
                     <button
-                      onClick={() => deleteNotif.mutate(n.id)}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        deleteNotif.mutate(n.id);
+                      }}
                       className="text-muted-foreground hover:text-destructive"
                       title="Delete"
                     >

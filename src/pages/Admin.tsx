@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -14,6 +15,8 @@ import { useRooms } from "@/hooks/useRooms";
 import { useToast } from "@/hooks/use-toast";
 import { Check, X, Shield, Ban, CalendarDays, Clock, MapPin, Users, Pencil } from "lucide-react";
 import AdminEditBookingModal from "@/components/AdminEditBookingModal";
+import { ScrollText } from "lucide-react";
+import { formatDistanceToNow } from "date-fns";
 
 const Admin = () => {
   const { user, isAdmin } = useAuth();
@@ -22,6 +25,20 @@ const Admin = () => {
   const { data: rooms } = useRooms();
   const [blockModalOpen, setBlockModalOpen] = useState(false);
   const [editingBooking, setEditingBooking] = useState<any | null>(null);
+  const [searchParams] = useSearchParams();
+  const highlightId = searchParams.get("booking");
+  const highlightRef = useRef<HTMLDivElement | null>(null);
+  const [activeTab, setActiveTab] = useState("pending");
+
+  useEffect(() => {
+    if (!highlightId) return;
+    // Switch to "all" tab so the highlighted booking is reachable regardless of status
+    setActiveTab("all");
+    const t = setTimeout(() => {
+      highlightRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+    }, 150);
+    return () => clearTimeout(t);
+  }, [highlightId]);
 
   // Pending admin bookings ordered by created_at (first come first serve)
   const { data: pendingBookings } = useQuery({
@@ -61,6 +78,21 @@ const Admin = () => {
         .from("blocked_slots")
         .select("*, rooms(name)")
         .order("date", { ascending: true });
+      if (error) throw error;
+      return data;
+    },
+    enabled: isAdmin,
+  });
+
+  // Audit log
+  const { data: auditLog } = useQuery({
+    queryKey: ["admin-audit-log"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("audit_log")
+        .select("*")
+        .order("created_at", { ascending: false })
+        .limit(200);
       if (error) throw error;
       return data;
     },
@@ -111,21 +143,30 @@ const Admin = () => {
     <div className="space-y-6">
       <h1 className="text-2xl font-bold">Admin Panel</h1>
 
-      <Tabs defaultValue="pending">
+      <Tabs value={activeTab} onValueChange={setActiveTab}>
         <TabsList>
           <TabsTrigger value="pending">
             Pending Approvals {pendingBookings?.length ? `(${pendingBookings.length})` : ""}
           </TabsTrigger>
           <TabsTrigger value="all">All Bookings</TabsTrigger>
           <TabsTrigger value="blocked">Blocked Slots</TabsTrigger>
+          <TabsTrigger value="audit">
+            <ScrollText className="mr-1 h-3 w-3" /> Audit Log
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="pending" className="space-y-3 mt-4">
           {pendingBookings?.length === 0 && (
             <p className="text-sm text-muted-foreground">No pending approvals.</p>
           )}
-          {pendingBookings?.map((booking, index) => (
-            <Card key={booking.id}>
+          {pendingBookings?.map((booking, index) => {
+            const isH = booking.id === highlightId;
+            return (
+            <Card
+              key={booking.id}
+              ref={isH ? highlightRef : undefined}
+              className={isH ? "ring-2 ring-primary ring-offset-2" : ""}
+            >
               <CardContent className="p-4">
                 <div className="flex items-start justify-between">
                   <div className="space-y-1">
@@ -186,7 +227,8 @@ const Admin = () => {
                 </div>
               </CardContent>
             </Card>
-          ))}
+            );
+          })}
         </TabsContent>
 
         <TabsContent value="all" className="space-y-3 mt-4">
@@ -198,8 +240,13 @@ const Admin = () => {
               rejected: "bg-red-100 text-red-800",
               cancelled: "bg-gray-100 text-gray-800",
             };
+            const isH = booking.id === highlightId;
             return (
-              <Card key={booking.id}>
+              <Card
+                key={booking.id}
+                ref={isH ? highlightRef : undefined}
+                className={isH ? "ring-2 ring-primary ring-offset-2" : ""}
+              >
                 <CardContent className="flex items-center justify-between p-3">
                   <div className="text-sm">
                     <span className="font-medium">{booking.title}</span>{" "}
@@ -254,6 +301,29 @@ const Admin = () => {
             rooms={rooms || []}
             userId={user!.id}
           />
+        </TabsContent>
+
+        <TabsContent value="audit" className="space-y-2 mt-4">
+          {!auditLog || auditLog.length === 0 ? (
+            <p className="text-sm text-muted-foreground">No admin actions recorded yet.</p>
+          ) : (
+            auditLog.map((entry) => (
+              <Card key={entry.id}>
+                <CardContent className="flex items-start justify-between p-3 text-sm">
+                  <div className="min-w-0 flex-1">
+                    <p className="font-medium">{entry.summary}</p>
+                    <p className="mt-0.5 text-xs text-muted-foreground">
+                      by {entry.actor_email || "system"} •{" "}
+                      {formatDistanceToNow(new Date(entry.created_at), { addSuffix: true })}
+                    </p>
+                  </div>
+                  <Badge variant="outline" className="ml-2 shrink-0 text-xs">
+                    {entry.action}
+                  </Badge>
+                </CardContent>
+              </Card>
+            ))
+          )}
         </TabsContent>
       </Tabs>
 
