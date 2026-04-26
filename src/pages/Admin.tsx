@@ -184,6 +184,19 @@ const Admin = () => {
         </TabsList>
 
         <TabsContent value="pending" className="space-y-3 mt-4">
+          {pendingBookings && pendingBookings.length > 0 && (
+            <div className="flex justify-end">
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => approveAllPending.mutate(pendingBookings.map((b) => b.id))}
+                disabled={approveAllPending.isPending}
+                className="gap-1"
+              >
+                <Check className="h-3 w-3" /> Approve all ({pendingBookings.length})
+              </Button>
+            </div>
+          )}
           {pendingBookings?.length === 0 && (
             <p className="text-sm text-muted-foreground">No pending approvals.</p>
           )}
