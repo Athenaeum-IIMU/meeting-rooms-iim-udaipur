@@ -14,6 +14,42 @@ export type Database = {
   }
   public: {
     Tables: {
+      audit_log: {
+        Row: {
+          action: string
+          actor_email: string | null
+          actor_id: string | null
+          created_at: string
+          details: Json | null
+          id: string
+          summary: string
+          target_id: string | null
+          target_type: string
+        }
+        Insert: {
+          action: string
+          actor_email?: string | null
+          actor_id?: string | null
+          created_at?: string
+          details?: Json | null
+          id?: string
+          summary: string
+          target_id?: string | null
+          target_type: string
+        }
+        Update: {
+          action?: string
+          actor_email?: string | null
+          actor_id?: string | null
+          created_at?: string
+          details?: Json | null
+          id?: string
+          summary?: string
+          target_id?: string | null
+          target_type?: string
+        }
+        Relationships: []
+      }
       blocked_slots: {
         Row: {
           created_at: string
@@ -273,6 +309,7 @@ export type Database = {
         }
         Returns: boolean
       }
+      get_actor_email: { Args: { _user_id: string }; Returns: string }
       get_user_daily_hours: {
         Args: {
           p_date: string
