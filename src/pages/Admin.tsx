@@ -302,6 +302,29 @@ const Admin = () => {
             userId={user!.id}
           />
         </TabsContent>
+
+        <TabsContent value="audit" className="space-y-2 mt-4">
+          {!auditLog || auditLog.length === 0 ? (
+            <p className="text-sm text-muted-foreground">No admin actions recorded yet.</p>
+          ) : (
+            auditLog.map((entry) => (
+              <Card key={entry.id}>
+                <CardContent className="flex items-start justify-between p-3 text-sm">
+                  <div className="min-w-0 flex-1">
+                    <p className="font-medium">{entry.summary}</p>
+                    <p className="mt-0.5 text-xs text-muted-foreground">
+                      by {entry.actor_email || "system"} •{" "}
+                      {formatDistanceToNow(new Date(entry.created_at), { addSuffix: true })}
+                    </p>
+                  </div>
+                  <Badge variant="outline" className="ml-2 shrink-0 text-xs">
+                    {entry.action}
+                  </Badge>
+                </CardContent>
+              </Card>
+            ))
+          )}
+        </TabsContent>
       </Tabs>
 
       <AdminEditBookingModal
