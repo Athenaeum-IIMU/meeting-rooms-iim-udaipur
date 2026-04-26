@@ -131,6 +131,34 @@ const Admin = () => {
     },
   });
 
+  const approveAllPending = useMutation({
+    mutationFn: async (ids: string[]) => {
+      const { error } = await supabase
+        .from("bookings")
+        .update({ status: "approved" })
+        .in("id", ids);
+      if (error) throw error;
+      return ids.length;
+    },
+    onSuccess: (count) => {
+      queryClient.invalidateQueries({ queryKey: ["admin-pending"] });
+      queryClient.invalidateQueries({ queryKey: ["admin-all-bookings"] });
+      queryClient.invalidateQueries({ queryKey: ["bookings"] });
+      toast({ title: `Approved ${count} bookings` });
+    },
+    onError: (e: Error) => toast({ title: "Bulk approve failed", description: e.message, variant: "destructive" }),
+  });
+
+  // Filters for the All Bookings tab
+  const [filterStatus, setFilterStatus] = useState<string>("all");
+  const [filterDate, setFilterDate] = useState<string>("");
+
+  const filteredBookings = (allBookings || []).filter((b) => {
+    if (filterStatus !== "all" && b.status !== filterStatus) return false;
+    if (filterDate && b.date !== filterDate) return false;
+    return true;
+  });
+
   if (!isAdmin) {
     return (
       <div className="flex items-center justify-center py-20 text-muted-foreground">
