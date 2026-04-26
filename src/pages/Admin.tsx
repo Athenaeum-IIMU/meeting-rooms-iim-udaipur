@@ -15,6 +15,8 @@ import { useRooms } from "@/hooks/useRooms";
 import { useToast } from "@/hooks/use-toast";
 import { Check, X, Shield, Ban, CalendarDays, Clock, MapPin, Users, Pencil } from "lucide-react";
 import AdminEditBookingModal from "@/components/AdminEditBookingModal";
+import { ScrollText } from "lucide-react";
+import { formatDistanceToNow } from "date-fns";
 
 const Admin = () => {
   const { user, isAdmin } = useAuth();
@@ -76,6 +78,21 @@ const Admin = () => {
         .from("blocked_slots")
         .select("*, rooms(name)")
         .order("date", { ascending: true });
+      if (error) throw error;
+      return data;
+    },
+    enabled: isAdmin,
+  });
+
+  // Audit log
+  const { data: auditLog } = useQuery({
+    queryKey: ["admin-audit-log"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("audit_log")
+        .select("*")
+        .order("created_at", { ascending: false })
+        .limit(200);
       if (error) throw error;
       return data;
     },
