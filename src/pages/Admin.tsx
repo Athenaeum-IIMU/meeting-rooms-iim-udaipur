@@ -131,6 +131,34 @@ const Admin = () => {
     },
   });
 
+  const approveAllPending = useMutation({
+    mutationFn: async (ids: string[]) => {
+      const { error } = await supabase
+        .from("bookings")
+        .update({ status: "approved" })
+        .in("id", ids);
+      if (error) throw error;
+      return ids.length;
+    },
+    onSuccess: (count) => {
+      queryClient.invalidateQueries({ queryKey: ["admin-pending"] });
+      queryClient.invalidateQueries({ queryKey: ["admin-all-bookings"] });
+      queryClient.invalidateQueries({ queryKey: ["bookings"] });
+      toast({ title: `Approved ${count} bookings` });
+    },
+    onError: (e: Error) => toast({ title: "Bulk approve failed", description: e.message, variant: "destructive" }),
+  });
+
+  // Filters for the All Bookings tab
+  const [filterStatus, setFilterStatus] = useState<string>("all");
+  const [filterDate, setFilterDate] = useState<string>("");
+
+  const filteredBookings = (allBookings || []).filter((b) => {
+    if (filterStatus !== "all" && b.status !== filterStatus) return false;
+    if (filterDate && b.date !== filterDate) return false;
+    return true;
+  });
+
   if (!isAdmin) {
     return (
       <div className="flex items-center justify-center py-20 text-muted-foreground">
@@ -156,6 +184,19 @@ const Admin = () => {
         </TabsList>
 
         <TabsContent value="pending" className="space-y-3 mt-4">
+          {pendingBookings && pendingBookings.length > 0 && (
+            <div className="flex justify-end">
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => approveAllPending.mutate(pendingBookings.map((b) => b.id))}
+                disabled={approveAllPending.isPending}
+                className="gap-1"
+              >
+                <Check className="h-3 w-3" /> Approve all ({pendingBookings.length})
+              </Button>
+            </div>
+          )}
           {pendingBookings?.length === 0 && (
             <p className="text-sm text-muted-foreground">No pending approvals.</p>
           )}
@@ -232,7 +273,52 @@ const Admin = () => {
         </TabsContent>
 
         <TabsContent value="all" className="space-y-3 mt-4">
-          {allBookings?.map((booking) => {
+          <div className="flex flex-wrap items-end gap-3 rounded-md border p-3">
+            <div className="space-y-1">
+              <Label className="text-xs">Status</Label>
+              <Select value={filterStatus} onValueChange={setFilterStatus}>
+                <SelectTrigger className="h-8 w-44">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All statuses</SelectItem>
+                  <SelectItem value="pending_members">Awaiting members</SelectItem>
+                  <SelectItem value="pending_admin">Awaiting approval</SelectItem>
+                  <SelectItem value="approved">Approved</SelectItem>
+                  <SelectItem value="rejected">Rejected</SelectItem>
+                  <SelectItem value="cancelled">Cancelled</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1">
+              <Label className="text-xs">Date</Label>
+              <Input
+                type="date"
+                value={filterDate}
+                onChange={(e) => setFilterDate(e.target.value)}
+                className="h-8 w-44"
+              />
+            </div>
+            {(filterStatus !== "all" || filterDate) && (
+              <Button
+                size="sm"
+                variant="ghost"
+                onClick={() => {
+                  setFilterStatus("all");
+                  setFilterDate("");
+                }}
+              >
+                Clear
+              </Button>
+            )}
+            <span className="ml-auto text-xs text-muted-foreground">
+              {filteredBookings.length} of {allBookings?.length || 0}
+            </span>
+          </div>
+          {filteredBookings.length === 0 && (
+            <p className="text-sm text-muted-foreground">No bookings match these filters.</p>
+          )}
+          {filteredBookings.map((booking) => {
             const statusColor: Record<string, string> = {
               approved: "bg-green-100 text-green-800",
               pending_admin: "bg-yellow-100 text-yellow-800",

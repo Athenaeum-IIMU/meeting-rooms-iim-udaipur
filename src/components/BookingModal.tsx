@@ -8,7 +8,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useRooms } from "@/hooks/useRooms";
 import { useCreateBooking } from "@/hooks/useBookings";
 import { Badge } from "@/components/ui/badge";
-import { X } from "lucide-react";
+import { X, MapPin, Users, Info } from "lucide-react";
 
 interface BookingModalProps {
   open: boolean;
@@ -110,6 +110,26 @@ const BookingModal = ({ open, onClose, defaultDate, defaultTime, defaultRoomId }
                 ))}
               </SelectContent>
             </Select>
+            {selectedRoom && (
+              <div className="rounded-md border bg-muted/40 p-2.5 text-xs space-y-1">
+                <div className="flex flex-wrap gap-x-3 gap-y-1 text-muted-foreground">
+                  {selectedRoom.location && (
+                    <span className="flex items-center gap-1">
+                      <MapPin className="h-3 w-3" /> {selectedRoom.location}
+                    </span>
+                  )}
+                  <span className="flex items-center gap-1">
+                    <Users className="h-3 w-3" /> Capacity {selectedRoom.capacity} • Min {selectedRoom.min_members}
+                  </span>
+                </div>
+                {selectedRoom.description && (
+                  <p className="flex items-start gap-1 text-foreground/80">
+                    <Info className="mt-0.5 h-3 w-3 shrink-0 text-muted-foreground" />
+                    <span>{selectedRoom.description}</span>
+                  </p>
+                )}
+              </div>
+            )}
           </div>
 
           <div className="space-y-2">
