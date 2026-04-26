@@ -113,11 +113,12 @@ const Index = () => {
           </span>
         </div>
 
-        <div className="flex items-center gap-2">
-          <div className="flex gap-1">
+        <div className="flex w-full items-center gap-2 sm:w-auto">
+          <div className="flex flex-1 gap-1 overflow-x-auto sm:flex-none">
             <Button
               variant={selectedRoom === null ? "secondary" : "ghost"}
               size="sm"
+              className="shrink-0"
               onClick={() => setSelectedRoom(null)}
             >
               All
@@ -127,6 +128,7 @@ const Index = () => {
                 key={room.id}
                 variant={selectedRoom === room.id ? "secondary" : "ghost"}
                 size="sm"
+                className="shrink-0"
                 onClick={() => setSelectedRoom(room.id)}
               >
                 {room.name}
@@ -138,7 +140,7 @@ const Index = () => {
 
       <Button
         onClick={() => { setSelectedSlot({}); setModalOpen(true); }}
-        className="fixed bottom-6 right-6 z-50 gap-1 shadow-lg rounded-full px-6 h-12"
+        className="fixed bottom-4 right-4 z-50 gap-1 rounded-full px-4 h-11 shadow-lg sm:bottom-6 sm:right-6 sm:h-12 sm:px-6"
         size="lg"
       >
         <Plus className="h-5 w-5" /> Book
