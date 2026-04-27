@@ -15,7 +15,9 @@ import { useRooms } from "@/hooks/useRooms";
 import { useToast } from "@/hooks/use-toast";
 import { Check, X, Shield, Ban, CalendarDays, Clock, MapPin, Users, Pencil } from "lucide-react";
 import AdminEditBookingModal from "@/components/AdminEditBookingModal";
-import { ScrollText } from "lucide-react";
+import AdminRoomsTab from "@/components/AdminRoomsTab";
+import AdminUsersTab from "@/components/AdminUsersTab";
+import { ScrollText, Building2, UserCog } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 
 const Admin = () => {
@@ -178,6 +180,12 @@ const Admin = () => {
           </TabsTrigger>
           <TabsTrigger value="all">All Bookings</TabsTrigger>
           <TabsTrigger value="blocked">Blocked Slots</TabsTrigger>
+          <TabsTrigger value="rooms" className="gap-1">
+            <Building2 className="h-3 w-3" /> Rooms
+          </TabsTrigger>
+          <TabsTrigger value="users" className="gap-1">
+            <UserCog className="h-3 w-3" /> Users
+          </TabsTrigger>
           <TabsTrigger value="audit">
             <ScrollText className="mr-1 h-3 w-3" /> Audit Log
           </TabsTrigger>
@@ -387,6 +395,14 @@ const Admin = () => {
             rooms={rooms || []}
             userId={user!.id}
           />
+        </TabsContent>
+
+        <TabsContent value="rooms" className="mt-4">
+          <AdminRoomsTab />
+        </TabsContent>
+
+        <TabsContent value="users" className="mt-4">
+          <AdminUsersTab />
         </TabsContent>
 
         <TabsContent value="audit" className="space-y-2 mt-4">
