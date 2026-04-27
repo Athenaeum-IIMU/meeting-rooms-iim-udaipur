@@ -258,10 +258,25 @@ const Index = () => {
                             <div
                               key={b.id}
                               className={cn(
-                                "mb-0.5 cursor-default rounded border px-1 py-0.5 text-[10px] leading-tight",
+                                "mb-0.5 rounded border px-1 py-0.5 text-[10px] leading-tight",
+                                b.user_id !== user?.id ? "cursor-pointer hover:opacity-80" : "cursor-default",
                                 statusColors[b.status] || ""
                               )}
-                              title={`${b.title} (${b.start_time}–${b.end_time}) - ${b.status}`}
+                              title={
+                                b.user_id !== user?.id
+                                  ? `${b.title} (${b.start_time}–${b.end_time}) — click to join waitlist`
+                                  : `${b.title} (${b.start_time}–${b.end_time}) - ${b.status}`
+                              }
+                              onClick={() => {
+                                if (b.user_id !== user?.id) {
+                                  setWaitlistSlot({
+                                    roomId: room.id,
+                                    roomName: room.name,
+                                    date: dateStr,
+                                    hour,
+                                  });
+                                }
+                              }}
                             >
                               <span className="font-medium">{room.name}</span>: {b.title}
                               <div className="opacity-70">{b.start_time.slice(0, 5)}–{b.end_time.slice(0, 5)}</div>
