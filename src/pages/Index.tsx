@@ -5,6 +5,17 @@ import BookingModal from "@/components/BookingModal";
 import { Button } from "@/components/ui/button";
 import { ChevronLeft, ChevronRight, Plus } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
+import { useToast } from "@/hooks/use-toast";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
 
 const HOURS = Array.from({ length: 24 }, (_, i) => i);
 
@@ -42,6 +53,45 @@ const Index = () => {
     roomId?: string;
   }>({});
   const [selectedRoom, setSelectedRoom] = useState<string | null>(null);
+  const [waitlistSlot, setWaitlistSlot] = useState<{
+    roomId: string;
+    roomName: string;
+    date: string;
+    hour: number;
+  } | null>(null);
+  const { user } = useAuth();
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+
+  const joinWaitlist = useMutation({
+    mutationFn: async (slot: { roomId: string; date: string; hour: number }) => {
+      if (!user) throw new Error("Sign in required");
+      const start_time = `${String(slot.hour).padStart(2, "0")}:00:00`;
+      const end_time = `${String(slot.hour + 1).padStart(2, "0")}:00:00`;
+      const { error } = await supabase.from("waitlist").insert({
+        user_id: user.id,
+        room_id: slot.roomId,
+        date: slot.date,
+        start_time,
+        end_time,
+      });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast({
+        title: "Added to waitlist",
+        description: "You'll be notified if this slot frees up.",
+      });
+      setWaitlistSlot(null);
+      queryClient.invalidateQueries({ queryKey: ["waitlist"] });
+    },
+    onError: (e: Error) => {
+      const msg = e.message.includes("duplicate")
+        ? "You're already on the waitlist for this slot."
+        : e.message;
+      toast({ title: "Couldn't join waitlist", description: msg, variant: "destructive" });
+    },
+  });
 
   const weekDates = useMemo(() => getWeekDates(baseDate), [baseDate]);
   const startDate = formatDate(weekDates[0]);
