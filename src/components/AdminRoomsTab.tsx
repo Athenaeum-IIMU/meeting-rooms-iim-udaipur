@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useRooms } from "@/hooks/useRooms";
@@ -141,20 +141,15 @@ const RoomFormDialog = ({
   const [location, setLocation] = useState("");
   const [description, setDescription] = useState("");
 
-  // Reset form when opening
-  useState(() => {
-    /* placeholder */
-  });
-
-  // Sync form to selected room each open
-  if (open && room && name === "" && room.name) {
-    // initialize once when opening edit
-    setName(room.name);
-    setCapacity(room.capacity);
-    setMinMembers(room.min_members);
-    setLocation(room.location || "");
-    setDescription(room.description || "");
-  }
+  useEffect(() => {
+    if (open) {
+      setName(room?.name || "");
+      setCapacity(room?.capacity ?? 4);
+      setMinMembers(room?.min_members ?? 3);
+      setLocation(room?.location || "");
+      setDescription(room?.description || "");
+    }
+  }, [open, room]);
 
   const handleClose = () => {
     setName("");
