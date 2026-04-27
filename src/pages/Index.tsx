@@ -3,7 +3,7 @@ import { useRooms } from "@/hooks/useRooms";
 import { useWeekBookings, useBlockedSlots } from "@/hooks/useBookings";
 import BookingModal from "@/components/BookingModal";
 import { Button } from "@/components/ui/button";
-import { ChevronLeft, ChevronRight, Plus } from "lucide-react";
+import { ChevronLeft, ChevronRight, Plus, CircleCheck } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -103,6 +103,34 @@ const Index = () => {
 
   const filteredRooms = selectedRoom ? rooms?.filter((r) => r.id === selectedRoom) : rooms;
 
+  // Compute "rooms free right now" for today
+  const now = new Date();
+  const todayStr = formatDate(now);
+  const currentHour = now.getHours();
+  const roomsFreeNow = useMemo(() => {
+    if (!rooms) return { free: 0, total: 0, freeNames: [] as string[] };
+    const freeNames: string[] = [];
+    for (const r of rooms) {
+      const occupied = bookings?.some(
+        (b) =>
+          b.room_id === r.id &&
+          b.date === todayStr &&
+          ["approved", "pending_admin", "pending_members"].includes(b.status) &&
+          parseInt(b.start_time.split(":")[0]) <= currentHour &&
+          parseInt(b.end_time.split(":")[0]) > currentHour
+      );
+      const blocked = blockedSlots?.some(
+        (bs) =>
+          bs.room_id === r.id &&
+          bs.date === todayStr &&
+          parseInt(bs.start_time.split(":")[0]) <= currentHour &&
+          parseInt(bs.end_time.split(":")[0]) > currentHour
+      );
+      if (!occupied && !blocked) freeNames.push(r.name);
+    }
+    return { free: freeNames.length, total: rooms.length, freeNames };
+  }, [rooms, bookings, blockedSlots, todayStr, currentHour]);
+
   const prevWeek = () => {
     const d = new Date(baseDate);
     d.setDate(d.getDate() - 7);
@@ -148,6 +176,25 @@ const Index = () => {
 
   return (
     <div className="space-y-4">
+      {rooms && rooms.length > 0 && (
+        <div className="flex flex-wrap items-center gap-2 rounded-lg border bg-card p-3 text-sm">
+          <CircleCheck
+            className={cn(
+              "h-4 w-4",
+              roomsFreeNow.free > 0 ? "text-green-600" : "text-muted-foreground"
+            )}
+          />
+          <span className="font-medium">
+            {roomsFreeNow.free} of {roomsFreeNow.total} rooms free right now
+          </span>
+          {roomsFreeNow.freeNames.length > 0 && (
+            <span className="text-muted-foreground">
+              · {roomsFreeNow.freeNames.join(", ")}
+            </span>
+          )}
+        </div>
+      )}
+
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-2">
           <Button variant="outline" size="icon" onClick={prevWeek}>
