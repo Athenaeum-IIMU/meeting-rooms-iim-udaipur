@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -8,7 +8,8 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useRooms } from "@/hooks/useRooms";
 import { useCreateBooking } from "@/hooks/useBookings";
 import { Badge } from "@/components/ui/badge";
-import { X, MapPin, Users, Info } from "lucide-react";
+import { X, MapPin, Users, Info, AlertTriangle } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
 
 interface BookingModalProps {
   open: boolean;
@@ -34,6 +35,8 @@ const BookingModal = ({ open, onClose, defaultDate, defaultTime, defaultRoomId }
   const [endTime, setEndTime] = useState(defaultTime ? addHour(defaultTime) : "10:00");
   const [memberEmail, setMemberEmail] = useState("");
   const [members, setMembers] = useState<string[]>([]);
+  const [conflictReason, setConflictReason] = useState<string | null>(null);
+  const [checking, setChecking] = useState(false);
 
   const selectedRoom = rooms?.find((r) => r.id === roomId);
   const minMembers = selectedRoom?.min_members || 3;
@@ -58,6 +61,79 @@ const BookingModal = ({ open, onClose, defaultDate, defaultTime, defaultRoomId }
     const totalMembers = members.length + 1;
     if (totalMembers < minMembers) {
       return;
+    }
+
+    // Pre-flight conflict check so we can show a clear popup
+    setChecking(true);
+    try {
+      const [{ data: blocked }, { data: conflict }, { data: overlap }, { data: hours }] =
+        await Promise.all([
+          supabase.rpc("check_blocked_slot", {
+            p_room_id: roomId,
+            p_date: date,
+            p_start_time: startTime,
+            p_end_time: endTime,
+          }),
+          supabase.rpc("check_booking_conflict", {
+            p_room_id: roomId,
+            p_date: date,
+            p_start_time: startTime,
+            p_end_time: endTime,
+          }),
+          supabase.rpc("check_user_time_overlap", {
+            p_user_id: user.id,
+            p_date: date,
+            p_start_time: startTime,
+            p_end_time: endTime,
+          }),
+          supabase.rpc("get_user_daily_hours", {
+            p_user_id: user.id,
+            p_date: date,
+          }),
+        ]);
+
+      if (endTime <= startTime) {
+        setConflictReason("End time must be after start time.");
+        setChecking(false);
+        return;
+      }
+      if (blocked) {
+        setConflictReason(
+          "An admin has blocked this room for the chosen time. Pick a different room or time."
+        );
+        setChecking(false);
+        return;
+      }
+      if (conflict) {
+        setConflictReason(
+          "This room is already booked during the time you chose. Try a different slot or another room."
+        );
+        setChecking(false);
+        return;
+      }
+      if (overlap) {
+        setConflictReason(
+          "You already have another booking that overlaps with this time. You can only be in one meeting at a time."
+        );
+        setChecking(false);
+        return;
+      }
+      const cur = parseIntervalLocal(hours || "00:00:00");
+      const add = toMinLocal(endTime) - toMinLocal(startTime);
+      if (cur + add > 240) {
+        const remaining = Math.max(0, 240 - cur);
+        setConflictReason(
+          `This would put you over the 4-hour daily limit. You have ${Math.floor(
+            remaining / 60
+          )}h ${remaining % 60}m left for this day.`
+        );
+        setChecking(false);
+        return;
+      }
+    } catch (err) {
+      // Fall through and let the mutation handle any unexpected error
+    } finally {
+      setChecking(false);
     }
 
     await createBooking.mutateAsync({
@@ -87,6 +163,7 @@ const BookingModal = ({ open, onClose, defaultDate, defaultTime, defaultRoomId }
   const totalMembers = members.length + 1;
 
   return (
+    <>
     <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
       <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-md">
         <DialogHeader>
@@ -193,15 +270,44 @@ const BookingModal = ({ open, onClose, defaultDate, defaultTime, defaultRoomId }
           <Button
             type="submit"
             className="w-full"
-            disabled={createBooking.isPending || totalMembers < minMembers || !roomId}
+            disabled={createBooking.isPending || checking || totalMembers < minMembers || !roomId}
           >
-            {createBooking.isPending ? "Creating..." : "Create Booking"}
+            {checking
+              ? "Checking availability…"
+              : createBooking.isPending
+              ? "Creating..."
+              : "Create Booking"}
           </Button>
         </form>
       </DialogContent>
     </Dialog>
+
+    <Dialog open={!!conflictReason} onOpenChange={(o) => !o && setConflictReason(null)}>
+      <DialogContent className="sm:max-w-sm">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <AlertTriangle className="h-5 w-5 text-destructive" />
+            Can't book this slot
+          </DialogTitle>
+        </DialogHeader>
+        <p className="text-sm text-muted-foreground">{conflictReason}</p>
+        <DialogFooter>
+          <Button onClick={() => setConflictReason(null)}>Got it</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+    </>
   );
 };
+
+function parseIntervalLocal(i: string): number {
+  const p = i.split(":");
+  return parseInt(p[0]) * 60 + parseInt(p[1]);
+}
+function toMinLocal(t: string): number {
+  const [h, m] = t.split(":").map(Number);
+  return h * 60 + m;
+}
 
 function addHour(time: string): string {
   const [h, m] = time.split(":").map(Number);
