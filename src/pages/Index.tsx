@@ -310,6 +310,40 @@ const Index = () => {
         defaultTime={selectedSlot.time}
         defaultRoomId={selectedSlot.roomId}
       />
+
+      <Dialog open={!!waitlistSlot} onOpenChange={(o) => !o && setWaitlistSlot(null)}>
+        <DialogContent className="sm:max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Join the waitlist?</DialogTitle>
+          </DialogHeader>
+          {waitlistSlot && (
+            <p className="text-sm text-muted-foreground">
+              This slot in <strong>{waitlistSlot.roomName}</strong> on{" "}
+              <strong>{waitlistSlot.date}</strong> at{" "}
+              <strong>{String(waitlistSlot.hour).padStart(2, "0")}:00</strong> is taken.
+              We'll notify you if it frees up so you can book it.
+            </p>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setWaitlistSlot(null)}>
+              Cancel
+            </Button>
+            <Button
+              disabled={joinWaitlist.isPending}
+              onClick={() =>
+                waitlistSlot &&
+                joinWaitlist.mutate({
+                  roomId: waitlistSlot.roomId,
+                  date: waitlistSlot.date,
+                  hour: waitlistSlot.hour,
+                })
+              }
+            >
+              {joinWaitlist.isPending ? "Adding…" : "Join waitlist"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
