@@ -132,6 +132,7 @@ export type Database = {
           date: string
           end_time: string
           id: string
+          reminder_sent: boolean
           room_id: string
           start_time: string
           status: string
@@ -143,6 +144,7 @@ export type Database = {
           date: string
           end_time: string
           id?: string
+          reminder_sent?: boolean
           room_id: string
           start_time: string
           status?: string
@@ -154,6 +156,7 @@ export type Database = {
           date?: string
           end_time?: string
           id?: string
+          reminder_sent?: boolean
           room_id?: string
           start_time?: string
           status?: string
@@ -376,6 +379,7 @@ export type Database = {
         }
         Returns: undefined
       }
+      send_booking_reminders: { Args: never; Returns: undefined }
     }
     Enums: {
       app_role: "admin" | "user"
