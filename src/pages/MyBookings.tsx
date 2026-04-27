@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -7,7 +7,10 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
-import { CalendarDays, Clock, MapPin, Users, Trash2 } from "lucide-react";
+import { CalendarDays, Clock, MapPin, Users, Trash2, Pencil, History, Hourglass, Inbox } from "lucide-react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import EditBookingModal from "@/components/EditBookingModal";
+import { useMyWaitlist, useRemoveWaitlist } from "@/hooks/useWaitlist";
 
 const statusBadge: Record<string, { variant: "default" | "secondary" | "destructive" | "outline"; label: string }> = {
   pending_members: { variant: "outline", label: "Awaiting Members" },
@@ -24,6 +27,9 @@ const MyBookings = () => {
   const [searchParams] = useSearchParams();
   const highlightId = searchParams.get("booking");
   const highlightRef = useRef<HTMLDivElement | null>(null);
+  const [editing, setEditing] = useState<any | null>(null);
+  const [tab, setTab] = useState("active");
+  const today = new Date().toISOString().split("T")[0];
 
   useEffect(() => {
     if (highlightId && highlightRef.current) {
@@ -60,6 +66,9 @@ const MyBookings = () => {
     },
     enabled: !!profile?.email,
   });
+
+  const { data: waitlist } = useMyWaitlist();
+  const removeWaitlist = useRemoveWaitlist();
 
   const cancelBooking = useMutation({
     mutationFn: async (bookingId: string) => {
@@ -115,6 +124,81 @@ const MyBookings = () => {
     },
   });
 
+  const activeBookings = (myBookings || []).filter(
+    (b) => !["cancelled", "rejected"].includes(b.status) && b.date >= today
+  );
+  const pastBookings = (myBookings || []).filter(
+    (b) => ["cancelled", "rejected"].includes(b.status) || b.date < today
+  );
+
+  const renderBookingCard = (booking: any, allowEdit: boolean) => {
+    const badge = statusBadge[booking.status] || { variant: "outline" as const, label: booking.status };
+    const isHighlighted = booking.id === highlightId;
+    return (
+      <Card
+        key={booking.id}
+        ref={isHighlighted ? highlightRef : undefined}
+        className={
+          isHighlighted ? "ring-2 ring-primary ring-offset-2 transition-all" : ""
+        }
+      >
+        <CardContent className="p-4">
+          <div className="flex items-start justify-between gap-2">
+            <div className="space-y-1">
+              <div className="flex flex-wrap items-center gap-2">
+                <h3 className="font-semibold">{booking.title}</h3>
+                <Badge variant={badge.variant}>{badge.label}</Badge>
+              </div>
+              <div className="flex flex-wrap gap-3 text-sm text-muted-foreground">
+                <span className="flex items-center gap-1">
+                  <MapPin className="h-3 w-3" /> {(booking.rooms as any)?.name}
+                </span>
+                <span className="flex items-center gap-1">
+                  <CalendarDays className="h-3 w-3" /> {booking.date}
+                </span>
+                <span className="flex items-center gap-1">
+                  <Clock className="h-3 w-3" /> {booking.start_time.slice(0, 5)}–{booking.end_time.slice(0, 5)}
+                </span>
+                <span className="flex items-center gap-1">
+                  <Users className="h-3 w-3" /> {(booking.booking_members as any[])?.length || 0} members
+                </span>
+              </div>
+              {(booking.booking_members as any[])?.length > 0 && (
+                <div className="mt-1 flex flex-wrap gap-1">
+                  {(booking.booking_members as any[]).map((m: any) => (
+                    <Badge key={m.id} variant="outline" className="text-xs">
+                      {m.email} ({m.status})
+                    </Badge>
+                  ))}
+                </div>
+              )}
+            </div>
+            {allowEdit && (
+              <div className="flex shrink-0 gap-1">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => setEditing(booking)}
+                  title="Edit (will need re-approval)"
+                >
+                  <Pencil className="h-4 w-4" />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => cancelBooking.mutate(booking.id)}
+                  title="Cancel booking"
+                >
+                  <Trash2 className="h-4 w-4 text-destructive" />
+                </Button>
+              </div>
+            )}
+          </div>
+        </CardContent>
+      </Card>
+    );
+  };
+
   return (
     <div className="space-y-6">
       {/* Pending Invites */}
@@ -168,72 +252,83 @@ const MyBookings = () => {
         </div>
       )}
 
-      {/* My Bookings */}
-      <div className="space-y-3">
-        <h2 className="text-lg font-bold">My Bookings</h2>
-        {myBookings?.length === 0 && (
-          <p className="text-sm text-muted-foreground">No bookings yet. Go to Calendar to book a room!</p>
-        )}
-        {myBookings?.map((booking) => {
-          const badge = statusBadge[booking.status] || { variant: "outline" as const, label: booking.status };
-          const isHighlighted = booking.id === highlightId;
-          return (
-            <Card
-              key={booking.id}
-              ref={isHighlighted ? highlightRef : undefined}
-              className={
-                isHighlighted
-                  ? "ring-2 ring-primary ring-offset-2 transition-all"
-                  : ""
-              }
-            >
-              <CardContent className="p-4">
-                <div className="flex items-start justify-between">
-                  <div className="space-y-1">
-                    <div className="flex items-center gap-2">
-                      <h3 className="font-semibold">{booking.title}</h3>
-                      <Badge variant={badge.variant}>{badge.label}</Badge>
-                    </div>
-                    <div className="flex flex-wrap gap-3 text-sm text-muted-foreground">
-                      <span className="flex items-center gap-1">
-                        <MapPin className="h-3 w-3" /> {(booking.rooms as any)?.name}
-                      </span>
-                      <span className="flex items-center gap-1">
-                        <CalendarDays className="h-3 w-3" /> {booking.date}
-                      </span>
-                      <span className="flex items-center gap-1">
-                        <Clock className="h-3 w-3" /> {booking.start_time.slice(0, 5)}–{booking.end_time.slice(0, 5)}
-                      </span>
-                      <span className="flex items-center gap-1">
-                        <Users className="h-3 w-3" /> {(booking.booking_members as any[])?.length || 0} members
-                      </span>
-                    </div>
-                    {(booking.booking_members as any[])?.length > 0 && (
-                      <div className="flex flex-wrap gap-1 mt-1">
-                        {(booking.booking_members as any[]).map((m: any) => (
-                          <Badge key={m.id} variant="outline" className="text-xs">
-                            {m.email} ({m.status})
-                          </Badge>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                  {!["cancelled", "rejected"].includes(booking.status) && (
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => cancelBooking.mutate(booking.id)}
-                      title="Cancel booking"
-                    >
-                      <Trash2 className="h-4 w-4 text-destructive" />
-                    </Button>
-                  )}
+      {/* Waitlist */}
+      {waitlist && waitlist.length > 0 && (
+        <div className="space-y-3">
+          <h2 className="flex items-center gap-2 text-lg font-bold">
+            <Hourglass className="h-4 w-4" /> On Your Waitlist
+          </h2>
+          {waitlist.map((w) => (
+            <Card key={w.id}>
+              <CardContent className="flex items-center justify-between p-3">
+                <div className="text-sm">
+                  <span className="font-medium">{(w.rooms as any)?.name}</span>{" "}
+                  <span className="text-muted-foreground">
+                    • {w.date} • {w.start_time.slice(0, 5)}–{w.end_time.slice(0, 5)}
+                  </span>
+                  <p className="text-xs text-muted-foreground">
+                    You'll be notified if this slot frees up.
+                  </p>
                 </div>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => removeWaitlist.mutate(w.id)}
+                  title="Remove from waitlist"
+                >
+                  <Trash2 className="h-4 w-4 text-destructive" />
+                </Button>
               </CardContent>
             </Card>
-          );
-        })}
+          ))}
+        </div>
+      )}
+
+      {/* My Bookings tabs */}
+      <div className="space-y-3">
+        <Tabs value={tab} onValueChange={setTab}>
+          <TabsList>
+            <TabsTrigger value="active">
+              Active {activeBookings.length ? `(${activeBookings.length})` : ""}
+            </TabsTrigger>
+            <TabsTrigger value="past" className="gap-1">
+              <History className="h-3 w-3" /> History
+              {pastBookings.length ? ` (${pastBookings.length})` : ""}
+            </TabsTrigger>
+          </TabsList>
+          <TabsContent value="active" className="mt-4 space-y-3">
+            {activeBookings.length === 0 ? (
+              <Card>
+                <CardContent className="flex flex-col items-center gap-2 py-10 text-muted-foreground">
+                  <Inbox className="h-8 w-8" />
+                  <p className="text-sm">No active bookings.</p>
+                  <p className="text-xs">Head to the Calendar to book a room.</p>
+                </CardContent>
+              </Card>
+            ) : (
+              activeBookings.map((b) => renderBookingCard(b, true))
+            )}
+          </TabsContent>
+          <TabsContent value="past" className="mt-4 space-y-3">
+            {pastBookings.length === 0 ? (
+              <Card>
+                <CardContent className="flex flex-col items-center gap-2 py-10 text-muted-foreground">
+                  <History className="h-8 w-8" />
+                  <p className="text-sm">No past bookings yet.</p>
+                </CardContent>
+              </Card>
+            ) : (
+              pastBookings.map((b) => renderBookingCard(b, false))
+            )}
+          </TabsContent>
+        </Tabs>
       </div>
+
+      <EditBookingModal
+        open={!!editing}
+        onClose={() => setEditing(null)}
+        booking={editing}
+      />
     </div>
   );
 };
