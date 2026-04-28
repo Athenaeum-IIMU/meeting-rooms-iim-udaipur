@@ -54,17 +54,17 @@ const MyBookings = () => {
 
   // Bookings where I'm a member (pending acceptance)
   const { data: pendingInvites } = useQuery({
-    queryKey: ["pending-invites", profile?.email],
+    queryKey: ["pending-invites", user?.id],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("booking_members")
         .select("*, bookings(*, rooms(name), profiles!bookings_user_id_fkey(full_name, email))")
-        .eq("email", profile!.email)
+        .eq("user_id", user!.id)
         .eq("status", "pending");
       if (error) throw error;
       return data;
     },
-    enabled: !!profile?.email,
+    enabled: !!user?.id,
   });
 
   const { data: waitlist } = useMyWaitlist();
