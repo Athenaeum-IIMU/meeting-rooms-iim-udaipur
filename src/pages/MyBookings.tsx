@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -61,7 +61,7 @@ const MyBookings = () => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("booking_members")
-        .select("*, bookings(*, rooms(name), profiles!bookings_user_id_fkey(full_name, email))")
+        .select("*, bookings(*, rooms(name, location))")
         .eq("user_id", user!.id)
         .eq("status", "pending");
       if (error) throw error;
@@ -69,6 +69,29 @@ const MyBookings = () => {
     },
     enabled: !!user?.id,
   });
+
+  const inviteOwnerIds = useMemo(
+    () => Array.from(new Set((pendingInvites || []).map((invite: any) => invite.bookings?.user_id).filter(Boolean))),
+    [pendingInvites]
+  );
+
+  const { data: inviteOwners } = useQuery({
+    queryKey: ["pending-invite-owners", inviteOwnerIds],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("user_id, full_name, email")
+        .in("user_id", inviteOwnerIds);
+      if (error) throw error;
+      return data;
+    },
+    enabled: inviteOwnerIds.length > 0,
+  });
+
+  const inviteOwnersById = useMemo(
+    () => new Map((inviteOwners || []).map((owner) => [owner.user_id, owner])),
+    [inviteOwners]
+  );
 
   const { data: waitlist } = useMyWaitlist();
   const removeWaitlist = useRemoveWaitlist();
@@ -210,53 +233,56 @@ const MyBookings = () => {
           <h2 className="text-lg font-bold">Pending Invitations</h2>
           {pendingInvites.map((invite) => {
             const isHighlighted = invite.booking_id === highlightId;
+            const owner = inviteOwnersById.get((invite.bookings as any)?.user_id);
             return (
-            <Card
-              key={invite.id}
-              ref={isHighlighted ? inviteHighlightRef : undefined}
-              className={`border-orange-400/50 ${isHighlighted ? "ring-2 ring-primary ring-offset-2 transition-all" : ""}`}
-            >
-              <CardContent className="flex items-center justify-between p-4">
-                <div>
-                  <p className="font-medium">{(invite.bookings as any)?.title}</p>
-                  <p className="text-sm text-muted-foreground">
-                    {(invite.bookings as any)?.rooms?.name} •{" "}
-                    {(invite.bookings as any)?.date} •{" "}
-                    {(invite.bookings as any)?.start_time?.slice(0, 5)}–{(invite.bookings as any)?.end_time?.slice(0, 5)}
-                  </p>
-                  <p className="text-xs text-muted-foreground">
-                    By: {(invite.bookings as any)?.profiles?.full_name || (invite.bookings as any)?.profiles?.email}
-                  </p>
-                </div>
-                <div className="flex gap-2">
-                  <Button
-                    size="sm"
-                    onClick={() =>
-                      respondToInvite.mutate({
-                        memberId: invite.id,
-                        bookingId: invite.booking_id,
-                        status: "accepted",
-                      })
-                    }
-                  >
-                    Accept
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant="destructive"
-                    onClick={() =>
-                      respondToInvite.mutate({
-                        memberId: invite.id,
-                        bookingId: invite.booking_id,
-                        status: "rejected",
-                      })
-                    }
-                  >
-                    Decline
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
+              <div key={invite.id} ref={isHighlighted ? inviteHighlightRef : undefined}>
+                <Card className={`border-orange-400/50 ${isHighlighted ? "ring-2 ring-primary ring-offset-2 transition-all" : ""}`}>
+                  <CardContent className="flex flex-col gap-4 p-4 md:flex-row md:items-center md:justify-between">
+                    <div className="space-y-1">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <p className="font-medium">{(invite.bookings as any)?.title}</p>
+                        <Badge variant="outline">Invitation pending</Badge>
+                      </div>
+                      <p className="text-sm text-muted-foreground">
+                        {(invite.bookings as any)?.rooms?.name} • {(invite.bookings as any)?.date} • {(invite.bookings as any)?.start_time?.slice(0, 5)}–{(invite.bookings as any)?.end_time?.slice(0, 5)}
+                      </p>
+                      {(invite.bookings as any)?.rooms?.location && (
+                        <p className="text-xs text-muted-foreground">Location: {(invite.bookings as any)?.rooms?.location}</p>
+                      )}
+                      <p className="text-xs text-muted-foreground">
+                        By: {owner?.full_name || owner?.email || "Meeting organizer"}
+                      </p>
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                      <Button
+                        size="sm"
+                        onClick={() =>
+                          respondToInvite.mutate({
+                            memberId: invite.id,
+                            bookingId: invite.booking_id,
+                            status: "accepted",
+                          })
+                        }
+                      >
+                        Accept
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="destructive"
+                        onClick={() =>
+                          respondToInvite.mutate({
+                            memberId: invite.id,
+                            bookingId: invite.booking_id,
+                            status: "rejected",
+                          })
+                        }
+                      >
+                        Decline
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
             );
           })}
         </div>
