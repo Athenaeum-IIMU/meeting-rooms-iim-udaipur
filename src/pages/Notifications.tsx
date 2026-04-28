@@ -48,9 +48,10 @@ const Notifications = () => {
 
   const unreadCount = notifications?.filter((n) => !n.read).length || 0;
 
-  const openNotif = (n: { id: string; read: boolean; booking_id: string | null }) => {
+  const openNotif = (n: { id: string; read: boolean; booking_id: string | null; type: string }) => {
     if (!n.read) markRead.mutate(n.id);
-    const target = isAdmin ? "/admin" : "/my-bookings";
+    const personalTypes = ["invite", "member_accepted", "member_rejected", "booking_approved", "booking_rejected", "booking_cancelled", "booking_modified", "waitlist_available"];
+    const target = personalTypes.includes(n.type) || !isAdmin ? "/my-bookings" : "/admin";
     navigate(n.booking_id ? `${target}?booking=${n.booking_id}` : target);
   };
 

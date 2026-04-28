@@ -27,15 +27,18 @@ const MyBookings = () => {
   const [searchParams] = useSearchParams();
   const highlightId = searchParams.get("booking");
   const highlightRef = useRef<HTMLDivElement | null>(null);
+  const inviteHighlightRef = useRef<HTMLDivElement | null>(null);
   const [editing, setEditing] = useState<any | null>(null);
   const [tab, setTab] = useState("active");
   const today = new Date().toISOString().split("T")[0];
 
   useEffect(() => {
-    if (highlightId && highlightRef.current) {
-      highlightRef.current.scrollIntoView({ behavior: "smooth", block: "center" });
+    if (!highlightId) return;
+    const target = inviteHighlightRef.current || highlightRef.current;
+    if (target) {
+      target.scrollIntoView({ behavior: "smooth", block: "center" });
     }
-  }, [highlightId]);
+  });
 
   // Bookings I created
   const { data: myBookings } = useQuery({
@@ -205,8 +208,14 @@ const MyBookings = () => {
       {pendingInvites && pendingInvites.length > 0 && (
         <div className="space-y-3">
           <h2 className="text-lg font-bold">Pending Invitations</h2>
-          {pendingInvites.map((invite) => (
-            <Card key={invite.id} className="border-orange-400/50">
+          {pendingInvites.map((invite) => {
+            const isHighlighted = invite.booking_id === highlightId;
+            return (
+            <Card
+              key={invite.id}
+              ref={isHighlighted ? inviteHighlightRef : undefined}
+              className={`border-orange-400/50 ${isHighlighted ? "ring-2 ring-primary ring-offset-2 transition-all" : ""}`}
+            >
               <CardContent className="flex items-center justify-between p-4">
                 <div>
                   <p className="font-medium">{(invite.bookings as any)?.title}</p>
@@ -248,7 +257,8 @@ const MyBookings = () => {
                 </div>
               </CardContent>
             </Card>
-          ))}
+            );
+          })}
         </div>
       )}
 

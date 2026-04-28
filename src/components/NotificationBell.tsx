@@ -25,10 +25,13 @@ const NotificationBell = () => {
 
   const unreadCount = notifications?.filter((n) => !n.read).length || 0;
 
-  const handleClick = (n: { id: string; read: boolean; booking_id: string | null }) => {
+  const handleClick = (n: { id: string; read: boolean; booking_id: string | null; type: string }) => {
     if (!n.read) markRead.mutate(n.id);
     setOpen(false);
-    const target = isAdmin ? "/admin" : "/my-bookings";
+    // Personal action notifications (invites, member responses) always go to My Bookings,
+    // even for admins, since they belong to the user as a participant.
+    const personalTypes = ["invite", "member_accepted", "member_rejected", "booking_approved", "booking_rejected", "booking_cancelled", "booking_modified", "waitlist_available"];
+    const target = personalTypes.includes(n.type) || !isAdmin ? "/my-bookings" : "/admin";
     navigate(n.booking_id ? `${target}?booking=${n.booking_id}` : target);
   };
 
