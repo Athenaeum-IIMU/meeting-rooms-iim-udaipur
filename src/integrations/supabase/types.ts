@@ -380,6 +380,10 @@ export type Database = {
         Returns: undefined
       }
       send_booking_reminders: { Args: never; Returns: undefined }
+      shares_booking: {
+        Args: { _target: string; _viewer: string }
+        Returns: boolean
+      }
     }
     Enums: {
       app_role: "admin" | "user"
