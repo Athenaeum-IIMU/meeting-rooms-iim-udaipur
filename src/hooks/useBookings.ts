@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -9,7 +10,7 @@ export const useBookings = (date?: string) => {
     queryFn: async () => {
       let query = supabase
         .from("bookings")
-        .select("*, rooms(name), profiles!bookings_user_id_fkey(full_name, email), booking_members(*)");
+        .select("*, rooms(name), booking_members(*)");
       if (date) {
         query = query.eq("date", date);
       }
@@ -26,7 +27,7 @@ export const useWeekBookings = (startDate: string, endDate: string) => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("bookings")
-        .select("*, rooms(name), profiles!bookings_user_id_fkey(full_name, email), booking_members(*)")
+        .select("*, rooms(name), booking_members(*)")
         .gte("date", startDate)
         .lte("date", endDate)
         .order("created_at", { ascending: true });
@@ -49,6 +50,39 @@ export const useBlockedSlots = (startDate: string, endDate: string) => {
       return data;
     },
   });
+};
+
+/**
+ * Subscribe to realtime updates on bookings, members, and blocked slots.
+ * Invalidates relevant queries so calendar / admin / my-bookings refresh live.
+ */
+export const useBookingsRealtime = () => {
+  const queryClient = useQueryClient();
+  useEffect(() => {
+    const channel = supabase
+      .channel("bookings-realtime")
+      .on("postgres_changes", { event: "*", schema: "public", table: "bookings" }, () => {
+        queryClient.invalidateQueries({ queryKey: ["bookings"] });
+        queryClient.invalidateQueries({ queryKey: ["my-bookings"] });
+        queryClient.invalidateQueries({ queryKey: ["admin-pending"] });
+        queryClient.invalidateQueries({ queryKey: ["admin-all-bookings"] });
+      })
+      .on("postgres_changes", { event: "*", schema: "public", table: "booking_members" }, () => {
+        queryClient.invalidateQueries({ queryKey: ["bookings"] });
+        queryClient.invalidateQueries({ queryKey: ["my-bookings"] });
+        queryClient.invalidateQueries({ queryKey: ["pending-invites"] });
+        queryClient.invalidateQueries({ queryKey: ["admin-pending"] });
+        queryClient.invalidateQueries({ queryKey: ["admin-all-bookings"] });
+      })
+      .on("postgres_changes", { event: "*", schema: "public", table: "blocked_slots" }, () => {
+        queryClient.invalidateQueries({ queryKey: ["blocked_slots"] });
+        queryClient.invalidateQueries({ queryKey: ["admin-blocked-slots"] });
+      })
+      .subscribe();
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [queryClient]);
 };
 
 export const useCreateBooking = () => {

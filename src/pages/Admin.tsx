@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -12,6 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useRooms } from "@/hooks/useRooms";
+import { useBookingsRealtime } from "@/hooks/useBookings";
 import { useToast } from "@/hooks/use-toast";
 import { Check, X, Shield, Ban, CalendarDays, Clock, MapPin, Users, Pencil } from "lucide-react";
 import AdminEditBookingModal from "@/components/AdminEditBookingModal";
@@ -25,6 +26,7 @@ const Admin = () => {
   const queryClient = useQueryClient();
   const { toast } = useToast();
   const { data: rooms } = useRooms();
+  useBookingsRealtime();
   const [blockModalOpen, setBlockModalOpen] = useState(false);
   const [editingBooking, setEditingBooking] = useState<any | null>(null);
   const [searchParams] = useSearchParams();
@@ -48,7 +50,7 @@ const Admin = () => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("bookings")
-        .select("*, rooms(name), profiles!bookings_user_id_fkey(full_name, email), booking_members(*)")
+        .select("*, rooms(name), booking_members(*)")
         .eq("status", "pending_admin")
         .order("created_at", { ascending: true });
       if (error) throw error;
@@ -63,7 +65,7 @@ const Admin = () => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("bookings")
-        .select("*, rooms(name), profiles!bookings_user_id_fkey(full_name, email), booking_members(*)")
+        .select("*, rooms(name), booking_members(*)")
         .order("created_at", { ascending: false })
         .limit(50);
       if (error) throw error;
@@ -71,6 +73,32 @@ const Admin = () => {
     },
     enabled: isAdmin,
   });
+
+  // Fetch profiles for booking owners separately (FK points to auth.users, so embed isn't possible)
+  const ownerIds = useMemo(() => {
+    const ids = new Set<string>();
+    (pendingBookings || []).forEach((b: any) => b.user_id && ids.add(b.user_id));
+    (allBookings || []).forEach((b: any) => b.user_id && ids.add(b.user_id));
+    return Array.from(ids);
+  }, [pendingBookings, allBookings]);
+
+  const { data: ownerProfiles } = useQuery({
+    queryKey: ["admin-owner-profiles", ownerIds],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("user_id, full_name, email")
+        .in("user_id", ownerIds);
+      if (error) throw error;
+      return data;
+    },
+    enabled: isAdmin && ownerIds.length > 0,
+  });
+
+  const ownerById = useMemo(
+    () => new Map((ownerProfiles || []).map((p) => [p.user_id, p])),
+    [ownerProfiles]
+  );
 
   // Blocked slots
   const { data: blockedSlots } = useQuery({
@@ -235,7 +263,7 @@ const Admin = () => {
                       </span>
                     </div>
                     <p className="text-xs text-muted-foreground">
-                      By: {(booking.profiles as any)?.full_name || (booking.profiles as any)?.email}
+                      By: {ownerById.get(booking.user_id)?.full_name || ownerById.get(booking.user_id)?.email || "—"}
                     </p>
                     {(booking.booking_members as any[])?.length > 0 && (
                       <div className="flex flex-wrap gap-1 mt-1">
@@ -348,7 +376,7 @@ const Admin = () => {
                       • {(booking.rooms as any)?.name} • {booking.date} {booking.start_time.slice(0, 5)}–{booking.end_time.slice(0, 5)}
                     </span>
                     <span className="text-xs text-muted-foreground ml-2">
-                      by {(booking.profiles as any)?.full_name || (booking.profiles as any)?.email}
+                      by {ownerById.get(booking.user_id)?.full_name || ownerById.get(booking.user_id)?.email || "—"}
                     </span>
                   </div>
                   <div className="flex items-center gap-2">

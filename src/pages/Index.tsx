@@ -1,6 +1,6 @@
 import { useState, useMemo } from "react";
 import { useRooms } from "@/hooks/useRooms";
-import { useWeekBookings, useBlockedSlots } from "@/hooks/useBookings";
+import { useWeekBookings, useBlockedSlots, useBookingsRealtime } from "@/hooks/useBookings";
 import BookingModal from "@/components/BookingModal";
 import { Button } from "@/components/ui/button";
 import { ChevronLeft, ChevronRight, Plus, CircleCheck } from "lucide-react";
@@ -46,6 +46,7 @@ const statusColors: Record<string, string> = {
 
 const Index = () => {
   const [baseDate, setBaseDate] = useState(new Date());
+  useBookingsRealtime();
   const [modalOpen, setModalOpen] = useState(false);
   const [selectedSlot, setSelectedSlot] = useState<{
     date?: string;

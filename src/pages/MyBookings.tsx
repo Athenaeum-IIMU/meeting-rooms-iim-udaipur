@@ -11,6 +11,7 @@ import { CalendarDays, Clock, MapPin, Users, Trash2, Pencil, History, Hourglass,
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import EditBookingModal from "@/components/EditBookingModal";
 import { useMyWaitlist, useRemoveWaitlist } from "@/hooks/useWaitlist";
+import { useBookingsRealtime } from "@/hooks/useBookings";
 
 const statusBadge: Record<string, { variant: "default" | "secondary" | "destructive" | "outline"; label: string }> = {
   pending_members: { variant: "outline", label: "Awaiting Members" },
@@ -22,6 +23,7 @@ const statusBadge: Record<string, { variant: "default" | "secondary" | "destruct
 
 const MyBookings = () => {
   const { user, profile } = useAuth();
+  useBookingsRealtime();
   const queryClient = useQueryClient();
   const { toast } = useToast();
   const [searchParams] = useSearchParams();
