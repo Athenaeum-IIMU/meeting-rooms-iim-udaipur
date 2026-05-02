@@ -263,7 +263,7 @@ const Admin = () => {
                       </span>
                     </div>
                     <p className="text-xs text-muted-foreground">
-                      By: {(booking.profiles as any)?.full_name || (booking.profiles as any)?.email}
+                      By: {ownerById.get(booking.user_id)?.full_name || ownerById.get(booking.user_id)?.email || "—"}
                     </p>
                     {(booking.booking_members as any[])?.length > 0 && (
                       <div className="flex flex-wrap gap-1 mt-1">
@@ -376,7 +376,7 @@ const Admin = () => {
                       • {(booking.rooms as any)?.name} • {booking.date} {booking.start_time.slice(0, 5)}–{booking.end_time.slice(0, 5)}
                     </span>
                     <span className="text-xs text-muted-foreground ml-2">
-                      by {(booking.profiles as any)?.full_name || (booking.profiles as any)?.email}
+                      by {ownerById.get(booking.user_id)?.full_name || ownerById.get(booking.user_id)?.email || "—"}
                     </span>
                   </div>
                   <div className="flex items-center gap-2">
