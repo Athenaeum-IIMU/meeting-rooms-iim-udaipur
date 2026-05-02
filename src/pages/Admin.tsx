@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -73,6 +73,32 @@ const Admin = () => {
     },
     enabled: isAdmin,
   });
+
+  // Fetch profiles for booking owners separately (FK points to auth.users, so embed isn't possible)
+  const ownerIds = useMemo(() => {
+    const ids = new Set<string>();
+    (pendingBookings || []).forEach((b: any) => b.user_id && ids.add(b.user_id));
+    (allBookings || []).forEach((b: any) => b.user_id && ids.add(b.user_id));
+    return Array.from(ids);
+  }, [pendingBookings, allBookings]);
+
+  const { data: ownerProfiles } = useQuery({
+    queryKey: ["admin-owner-profiles", ownerIds],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("user_id, full_name, email")
+        .in("user_id", ownerIds);
+      if (error) throw error;
+      return data;
+    },
+    enabled: isAdmin && ownerIds.length > 0,
+  });
+
+  const ownerById = useMemo(
+    () => new Map((ownerProfiles || []).map((p) => [p.user_id, p])),
+    [ownerProfiles]
+  );
 
   // Blocked slots
   const { data: blockedSlots } = useQuery({
