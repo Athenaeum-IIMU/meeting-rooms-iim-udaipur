@@ -12,6 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useRooms } from "@/hooks/useRooms";
+import { useBookingsRealtime } from "@/hooks/useBookings";
 import { useToast } from "@/hooks/use-toast";
 import { Check, X, Shield, Ban, CalendarDays, Clock, MapPin, Users, Pencil } from "lucide-react";
 import AdminEditBookingModal from "@/components/AdminEditBookingModal";
@@ -25,6 +26,7 @@ const Admin = () => {
   const queryClient = useQueryClient();
   const { toast } = useToast();
   const { data: rooms } = useRooms();
+  useBookingsRealtime();
   const [blockModalOpen, setBlockModalOpen] = useState(false);
   const [editingBooking, setEditingBooking] = useState<any | null>(null);
   const [searchParams] = useSearchParams();
@@ -48,7 +50,7 @@ const Admin = () => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("bookings")
-        .select("*, rooms(name), profiles!bookings_user_id_fkey(full_name, email), booking_members(*)")
+        .select("*, rooms(name), booking_members(*)")
         .eq("status", "pending_admin")
         .order("created_at", { ascending: true });
       if (error) throw error;
@@ -63,7 +65,7 @@ const Admin = () => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("bookings")
-        .select("*, rooms(name), profiles!bookings_user_id_fkey(full_name, email), booking_members(*)")
+        .select("*, rooms(name), booking_members(*)")
         .order("created_at", { ascending: false })
         .limit(50);
       if (error) throw error;
