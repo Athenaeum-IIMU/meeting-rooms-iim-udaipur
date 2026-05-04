@@ -158,6 +158,7 @@ const Index = () => {
       (b) =>
         b.room_id === roomId &&
         b.date === date &&
+        !["cancelled", "rejected"].includes(b.status) &&
         parseInt(b.start_time.split(":")[0]) <= hour &&
         parseInt(b.end_time.split(":")[0]) > hour
     ) || [];

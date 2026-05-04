@@ -72,6 +72,21 @@ const MyBookings = () => {
     enabled: !!user?.id,
   });
 
+  // Bookings where I'm an accepted member (show in My Bookings as participant)
+  const { data: memberBookings } = useQuery({
+    queryKey: ["member-bookings", user?.id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("booking_members")
+        .select("*, bookings(*, rooms(name, location), booking_members(*))")
+        .eq("user_id", user!.id)
+        .eq("status", "accepted");
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!user?.id,
+  });
+
   const inviteOwnerIds = useMemo(
     () => Array.from(new Set((pendingInvites || []).map((invite: any) => invite.bookings?.user_id).filter(Boolean))),
     [pendingInvites]
@@ -157,6 +172,17 @@ const MyBookings = () => {
   );
   const pastBookings = (myBookings || []).filter(
     (b) => ["cancelled", "rejected"].includes(b.status) || b.date < today
+  );
+
+  // Meetings I'm a participant in (not the organizer)
+  const participantBookings = (memberBookings || [])
+    .map((m: any) => m.bookings)
+    .filter((b: any) => b && b.user_id !== user?.id);
+  const activeParticipant = participantBookings.filter(
+    (b: any) => !["cancelled", "rejected"].includes(b.status) && b.date >= today
+  );
+  const pastParticipant = participantBookings.filter(
+    (b: any) => ["cancelled", "rejected"].includes(b.status) || b.date < today
   );
 
   const renderBookingCard = (booking: any, allowEdit: boolean) => {
@@ -335,7 +361,7 @@ const MyBookings = () => {
             </TabsTrigger>
           </TabsList>
           <TabsContent value="active" className="mt-4 space-y-3">
-            {activeBookings.length === 0 ? (
+            {activeBookings.length === 0 && activeParticipant.length === 0 ? (
               <Card>
                 <CardContent className="flex flex-col items-center gap-2 py-10 text-muted-foreground">
                   <Inbox className="h-8 w-8" />
@@ -344,11 +370,19 @@ const MyBookings = () => {
                 </CardContent>
               </Card>
             ) : (
-              activeBookings.map((b) => renderBookingCard(b, true))
+              <>
+                {activeBookings.map((b) => renderBookingCard(b, true))}
+                {activeParticipant.length > 0 && (
+                  <>
+                    <h3 className="pt-2 text-sm font-semibold text-muted-foreground">Meetings you're part of</h3>
+                    {activeParticipant.map((b: any) => renderBookingCard(b, false))}
+                  </>
+                )}
+              </>
             )}
           </TabsContent>
           <TabsContent value="past" className="mt-4 space-y-3">
-            {pastBookings.length === 0 ? (
+            {pastBookings.length === 0 && pastParticipant.length === 0 ? (
               <Card>
                 <CardContent className="flex flex-col items-center gap-2 py-10 text-muted-foreground">
                   <History className="h-8 w-8" />
@@ -356,7 +390,10 @@ const MyBookings = () => {
                 </CardContent>
               </Card>
             ) : (
-              pastBookings.map((b) => renderBookingCard(b, false))
+              <>
+                {pastBookings.map((b) => renderBookingCard(b, false))}
+                {pastParticipant.map((b: any) => renderBookingCard(b, false))}
+              </>
             )}
           </TabsContent>
         </Tabs>

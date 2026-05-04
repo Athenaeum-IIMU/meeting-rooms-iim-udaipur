@@ -64,6 +64,7 @@ export const useBookingsRealtime = () => {
       .on("postgres_changes", { event: "*", schema: "public", table: "bookings" }, () => {
         queryClient.invalidateQueries({ queryKey: ["bookings"] });
         queryClient.invalidateQueries({ queryKey: ["my-bookings"] });
+        queryClient.invalidateQueries({ queryKey: ["member-bookings"] });
         queryClient.invalidateQueries({ queryKey: ["admin-pending"] });
         queryClient.invalidateQueries({ queryKey: ["admin-all-bookings"] });
       })
@@ -71,6 +72,7 @@ export const useBookingsRealtime = () => {
         queryClient.invalidateQueries({ queryKey: ["bookings"] });
         queryClient.invalidateQueries({ queryKey: ["my-bookings"] });
         queryClient.invalidateQueries({ queryKey: ["pending-invites"] });
+        queryClient.invalidateQueries({ queryKey: ["member-bookings"] });
         queryClient.invalidateQueries({ queryKey: ["admin-pending"] });
         queryClient.invalidateQueries({ queryKey: ["admin-all-bookings"] });
       })
