@@ -72,6 +72,21 @@ const MyBookings = () => {
     enabled: !!user?.id,
   });
 
+  // Bookings where I'm an accepted member (show in My Bookings as participant)
+  const { data: memberBookings } = useQuery({
+    queryKey: ["member-bookings", user?.id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("booking_members")
+        .select("*, bookings(*, rooms(name, location), booking_members(*))")
+        .eq("user_id", user!.id)
+        .eq("status", "accepted");
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!user?.id,
+  });
+
   const inviteOwnerIds = useMemo(
     () => Array.from(new Set((pendingInvites || []).map((invite: any) => invite.bookings?.user_id).filter(Boolean))),
     [pendingInvites]
@@ -157,6 +172,17 @@ const MyBookings = () => {
   );
   const pastBookings = (myBookings || []).filter(
     (b) => ["cancelled", "rejected"].includes(b.status) || b.date < today
+  );
+
+  // Meetings I'm a participant in (not the organizer)
+  const participantBookings = (memberBookings || [])
+    .map((m: any) => m.bookings)
+    .filter((b: any) => b && b.user_id !== user?.id);
+  const activeParticipant = participantBookings.filter(
+    (b: any) => !["cancelled", "rejected"].includes(b.status) && b.date >= today
+  );
+  const pastParticipant = participantBookings.filter(
+    (b: any) => ["cancelled", "rejected"].includes(b.status) || b.date < today
   );
 
   const renderBookingCard = (booking: any, allowEdit: boolean) => {
