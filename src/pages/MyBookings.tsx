@@ -361,7 +361,7 @@ const MyBookings = () => {
             </TabsTrigger>
           </TabsList>
           <TabsContent value="active" className="mt-4 space-y-3">
-            {activeBookings.length === 0 ? (
+            {activeBookings.length === 0 && activeParticipant.length === 0 ? (
               <Card>
                 <CardContent className="flex flex-col items-center gap-2 py-10 text-muted-foreground">
                   <Inbox className="h-8 w-8" />
@@ -370,11 +370,19 @@ const MyBookings = () => {
                 </CardContent>
               </Card>
             ) : (
-              activeBookings.map((b) => renderBookingCard(b, true))
+              <>
+                {activeBookings.map((b) => renderBookingCard(b, true))}
+                {activeParticipant.length > 0 && (
+                  <>
+                    <h3 className="pt-2 text-sm font-semibold text-muted-foreground">Meetings you're part of</h3>
+                    {activeParticipant.map((b: any) => renderBookingCard(b, false))}
+                  </>
+                )}
+              </>
             )}
           </TabsContent>
           <TabsContent value="past" className="mt-4 space-y-3">
-            {pastBookings.length === 0 ? (
+            {pastBookings.length === 0 && pastParticipant.length === 0 ? (
               <Card>
                 <CardContent className="flex flex-col items-center gap-2 py-10 text-muted-foreground">
                   <History className="h-8 w-8" />
@@ -382,7 +390,10 @@ const MyBookings = () => {
                 </CardContent>
               </Card>
             ) : (
-              pastBookings.map((b) => renderBookingCard(b, false))
+              <>
+                {pastBookings.map((b) => renderBookingCard(b, false))}
+                {pastParticipant.map((b: any) => renderBookingCard(b, false))}
+              </>
             )}
           </TabsContent>
         </Tabs>
