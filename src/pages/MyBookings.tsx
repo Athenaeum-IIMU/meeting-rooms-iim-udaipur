@@ -185,9 +185,37 @@ const MyBookings = () => {
     (b: any) => ["cancelled", "rejected"].includes(b.status) || b.date < today
   );
 
+  // Fetch organizer profiles for participant bookings so we can display them as a member
+  const organizerIds = useMemo(
+    () => Array.from(new Set(participantBookings.map((b: any) => b.user_id).filter(Boolean))),
+    [participantBookings]
+  );
+  const { data: organizerProfiles } = useQuery({
+    queryKey: ["participant-organizers", organizerIds],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("user_id, full_name, email")
+        .in("user_id", organizerIds);
+      if (error) throw error;
+      return data;
+    },
+    enabled: organizerIds.length > 0,
+  });
+  const organizersById = useMemo(
+    () => new Map((organizerProfiles || []).map((o) => [o.user_id, o])),
+    [organizerProfiles]
+  );
+
   const renderBookingCard = (booking: any, allowEdit: boolean) => {
     const badge = statusBadge[booking.status] || { variant: "outline" as const, label: booking.status };
     const isHighlighted = booking.id === highlightId;
+    const members = (booking.booking_members as any[]) || [];
+    const isOrganizer = booking.user_id === user?.id;
+    const organizer = isOrganizer
+      ? { email: profile?.email || user?.email, full_name: profile?.full_name }
+      : organizersById.get(booking.user_id);
+    const totalPeople = members.length + 1; // organizer counts too
     return (
       <Card
         key={booking.id}
@@ -214,18 +242,21 @@ const MyBookings = () => {
                   <Clock className="h-3 w-3" /> {booking.start_time.slice(0, 5)}–{booking.end_time.slice(0, 5)}
                 </span>
                 <span className="flex items-center gap-1">
-                  <Users className="h-3 w-3" /> {(booking.booking_members as any[])?.length || 0} members
+                  <Users className="h-3 w-3" /> {totalPeople} {totalPeople === 1 ? "person" : "people"}
                 </span>
               </div>
-              {(booking.booking_members as any[])?.length > 0 && (
-                <div className="mt-1 flex flex-wrap gap-1">
-                  {(booking.booking_members as any[]).map((m: any) => (
-                    <Badge key={m.id} variant="outline" className="text-xs">
-                      {m.email} ({m.status})
-                    </Badge>
-                  ))}
-                </div>
-              )}
+              <div className="mt-1 flex flex-wrap gap-1">
+                {organizer?.email && (
+                  <Badge variant="secondary" className="text-xs">
+                    {organizer.email} (organizer)
+                  </Badge>
+                )}
+                {members.map((m: any) => (
+                  <Badge key={m.id} variant="outline" className="text-xs">
+                    {m.email} ({m.status})
+                  </Badge>
+                ))}
+              </div>
             </div>
             {allowEdit && (
               <div className="flex shrink-0 gap-1">
