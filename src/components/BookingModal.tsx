@@ -97,6 +97,12 @@ const BookingModal = ({ open, onClose, defaultDate, defaultTime, defaultRoomId }
         setChecking(false);
         return;
       }
+      const startDateTime = new Date(`${date}T${startTime}`);
+      if (startDateTime.getTime() < Date.now()) {
+        setConflictReason("You cannot book a time that is already in the past.");
+        setChecking(false);
+        return;
+      }
       if (blocked) {
         setConflictReason(
           "An admin has blocked this room for the chosen time. Pick a different room or time."
