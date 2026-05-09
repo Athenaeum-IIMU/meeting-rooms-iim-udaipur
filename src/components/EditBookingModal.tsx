@@ -48,6 +48,11 @@ const EditBookingModal = ({ open, onClose, booking }: EditBookingModalProps) => 
     mutationFn: async () => {
       if (!booking || !user) throw new Error("No booking");
 
+      // Past time guard
+      if (new Date(`${date}T${startTime}`).getTime() < Date.now()) {
+        throw new Error("You cannot move a booking to a time in the past.");
+      }
+
       // Conflict check
       const { data: hasConflict } = await supabase.rpc("check_booking_conflict", {
         p_room_id: roomId,
