@@ -8,6 +8,8 @@ export const useBookings = (date?: string) => {
   return useQuery({
     queryKey: ["bookings", date],
     queryFn: async () => {
+      // Auto-clean past unapproved bookings on each load
+      await supabase.rpc("cleanup_unapproved_past_bookings");
       let query = supabase
         .from("bookings")
         .select("*, rooms(name), booking_members(*)");
@@ -164,7 +166,11 @@ export const useCreateBooking = () => {
         const { error: memberError } = await supabase
           .from("booking_members")
           .insert(memberInserts);
-        if (memberError) throw memberError;
+        if (memberError) {
+          // Clean up the orphan booking so the slot is free again
+          await supabase.from("bookings").delete().eq("id", bookingData.id);
+          throw new Error(memberError.message);
+        }
       }
 
       return bookingData;
