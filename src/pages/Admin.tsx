@@ -479,6 +479,58 @@ const Admin = () => {
         onClose={() => setEditingBooking(null)}
         booking={editingBooking}
       />
+
+      <Dialog
+        open={!!rejectingBooking}
+        onOpenChange={(o) => {
+          if (!o) {
+            setRejectingBooking(null);
+            setRejectReason("");
+          }
+        }}
+      >
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Reject booking</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3">
+            <p className="text-sm text-muted-foreground">
+              The organizer and accepted members will receive this reason in their notifications. Edit it before sending.
+            </p>
+            <Textarea
+              value={rejectReason}
+              onChange={(e) => setRejectReason(e.target.value)}
+              rows={5}
+              placeholder="Why is this booking being rejected?"
+            />
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                className="flex-1"
+                onClick={() => {
+                  setRejectingBooking(null);
+                  setRejectReason("");
+                }}
+              >
+                Cancel
+              </Button>
+              <Button
+                variant="destructive"
+                className="flex-1"
+                disabled={!rejectReason.trim() || rejectBooking.isPending}
+                onClick={() =>
+                  rejectBooking.mutate({
+                    bookingId: rejectingBooking.id,
+                    reason: rejectReason.trim(),
+                  })
+                }
+              >
+                {rejectBooking.isPending ? "Sending…" : "Reject & notify"}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
