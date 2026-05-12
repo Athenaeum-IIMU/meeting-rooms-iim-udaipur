@@ -165,6 +165,13 @@ const MyBookings = () => {
       queryClient.invalidateQueries({ queryKey: ["bookings"] });
       toast({ title: "Response recorded" });
     },
+    onError: (e: Error) => {
+      toast({
+        title: "Couldn't accept invite",
+        description: e.message,
+        variant: "destructive",
+      });
+    },
   });
 
   const activeBookings = (myBookings || []).filter(
@@ -245,6 +252,11 @@ const MyBookings = () => {
                   <Users className="h-3 w-3" /> {totalPeople} {totalPeople === 1 ? "person" : "people"}
                 </span>
               </div>
+              {booking.status === "rejected" && booking.rejection_reason && (
+                <p className="mt-1 rounded-md border border-destructive/30 bg-destructive/5 p-2 text-xs text-destructive">
+                  <span className="font-semibold">Rejection reason:</span> {booking.rejection_reason}
+                </p>
+              )}
               <div className="mt-1 flex flex-wrap gap-1">
                 {organizer?.email && (
                   <Badge variant="secondary" className="text-xs">
