@@ -166,7 +166,11 @@ export const useCreateBooking = () => {
         const { error: memberError } = await supabase
           .from("booking_members")
           .insert(memberInserts);
-        if (memberError) throw memberError;
+        if (memberError) {
+          // Clean up the orphan booking so the slot is free again
+          await supabase.from("bookings").delete().eq("id", bookingData.id);
+          throw new Error(memberError.message);
+        }
       }
 
       return bookingData;
