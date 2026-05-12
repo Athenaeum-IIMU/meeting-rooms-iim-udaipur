@@ -11,6 +11,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Textarea } from "@/components/ui/textarea";
 import { useRooms } from "@/hooks/useRooms";
 import { useBookingsRealtime } from "@/hooks/useBookings";
 import { useToast } from "@/hooks/use-toast";
@@ -29,6 +30,8 @@ const Admin = () => {
   useBookingsRealtime();
   const [blockModalOpen, setBlockModalOpen] = useState(false);
   const [editingBooking, setEditingBooking] = useState<any | null>(null);
+  const [rejectingBooking, setRejectingBooking] = useState<any | null>(null);
+  const [rejectReason, setRejectReason] = useState("");
   const [searchParams] = useSearchParams();
   const highlightId = searchParams.get("booking");
   const highlightRef = useRef<HTMLDivElement | null>(null);
@@ -146,10 +149,10 @@ const Admin = () => {
   });
 
   const rejectBooking = useMutation({
-    mutationFn: async (bookingId: string) => {
+    mutationFn: async ({ bookingId, reason }: { bookingId: string; reason: string }) => {
       const { error } = await supabase
         .from("bookings")
-        .update({ status: "rejected" })
+        .update({ status: "rejected", rejection_reason: reason || null })
         .eq("id", bookingId);
       if (error) throw error;
     },
@@ -157,9 +160,23 @@ const Admin = () => {
       queryClient.invalidateQueries({ queryKey: ["admin-pending"] });
       queryClient.invalidateQueries({ queryKey: ["admin-all-bookings"] });
       queryClient.invalidateQueries({ queryKey: ["bookings"] });
-      toast({ title: "Booking rejected" });
+      toast({ title: "Booking rejected", description: "Members have been notified." });
+      setRejectingBooking(null);
+      setRejectReason("");
+    },
+    onError: (e: Error) => {
+      toast({ title: "Reject failed", description: e.message, variant: "destructive" });
     },
   });
+
+  const openRejectDialog = (booking: any) => {
+    const room = (booking.rooms as any)?.name || "the room";
+    const time = `${booking.start_time.slice(0, 5)}–${booking.end_time.slice(0, 5)}`;
+    setRejectReason(
+      `Your booking "${booking.title}" in ${room} on ${booking.date} (${time}) could not be approved due to a scheduling conflict or room policy. Please pick a different slot or room and try again.`
+    );
+    setRejectingBooking(booking);
+  };
 
   const approveAllPending = useMutation({
     mutationFn: async (ids: string[]) => {
@@ -295,7 +312,7 @@ const Admin = () => {
                     <Button
                       size="sm"
                       variant="destructive"
-                      onClick={() => rejectBooking.mutate(booking.id)}
+                      onClick={() => openRejectDialog(booking)}
                       className="gap-1"
                     >
                       <X className="h-3 w-3" /> Reject
