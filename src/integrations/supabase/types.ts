@@ -132,6 +132,7 @@ export type Database = {
           date: string
           end_time: string
           id: string
+          rejection_reason: string | null
           reminder_sent: boolean
           room_id: string
           start_time: string
@@ -144,6 +145,7 @@ export type Database = {
           date: string
           end_time: string
           id?: string
+          rejection_reason?: string | null
           reminder_sent?: boolean
           room_id: string
           start_time: string
@@ -156,6 +158,7 @@ export type Database = {
           date?: string
           end_time?: string
           id?: string
+          rejection_reason?: string | null
           reminder_sent?: boolean
           room_id?: string
           start_time?: string
@@ -353,6 +356,7 @@ export type Database = {
         }
         Returns: boolean
       }
+      cleanup_unapproved_past_bookings: { Args: never; Returns: undefined }
       get_actor_email: { Args: { _user_id: string }; Returns: string }
       get_user_daily_hours: {
         Args: {
