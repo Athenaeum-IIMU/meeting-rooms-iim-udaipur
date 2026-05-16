@@ -42,6 +42,7 @@ const statusColors: Record<string, string> = {
   pending_members: "bg-orange-400/20 border-orange-400 text-orange-800",
   rejected: "bg-red-500/20 border-red-500 text-red-800",
   cancelled: "bg-muted border-muted-foreground/30 text-muted-foreground",
+  needs_replacement: "bg-red-500/10 border-red-400 text-red-700",
 };
 
 const Index = () => {

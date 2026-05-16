@@ -7,11 +7,13 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
-import { CalendarDays, Clock, MapPin, Users, Trash2, Pencil, History, Hourglass, Inbox } from "lucide-react";
+import { CalendarDays, Clock, MapPin, Users, Trash2, Pencil, History, Hourglass, Inbox, UserPlus, AlertTriangle } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import EditBookingModal from "@/components/EditBookingModal";
 import { useMyWaitlist, useRemoveWaitlist } from "@/hooks/useWaitlist";
 import { useBookingsRealtime } from "@/hooks/useBookings";
+import { Input } from "@/components/ui/input";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 
 const statusBadge: Record<string, { variant: "default" | "secondary" | "destructive" | "outline"; label: string }> = {
   pending_members: { variant: "outline", label: "Awaiting Members" },
@@ -19,6 +21,7 @@ const statusBadge: Record<string, { variant: "default" | "secondary" | "destruct
   approved: { variant: "default", label: "Approved" },
   rejected: { variant: "destructive", label: "Rejected" },
   cancelled: { variant: "outline", label: "Cancelled" },
+  needs_replacement: { variant: "destructive", label: "Needs Replacement" },
 };
 
 const MyBookings = () => {
@@ -31,6 +34,8 @@ const MyBookings = () => {
   const highlightRef = useRef<HTMLDivElement | null>(null);
   const inviteHighlightRef = useRef<HTMLDivElement | null>(null);
   const [editing, setEditing] = useState<any | null>(null);
+  const [replacing, setReplacing] = useState<any | null>(null);
+  const [replacementEmail, setReplacementEmail] = useState("");
   const [tab, setTab] = useState("active");
   const today = new Date().toISOString().split("T")[0];
 
@@ -135,29 +140,9 @@ const MyBookings = () => {
         .update({ status, user_id: user!.id })
         .eq("id", memberId);
       if (error) throw error;
-
-      // Check if all members accepted → move to pending_admin
-      if (status === "accepted") {
-        const { data: allMembers } = await supabase
-          .from("booking_members")
-          .select("status")
-          .eq("booking_id", bookingId);
-        const allAccepted = allMembers?.every((m) => m.status === "accepted");
-        if (allAccepted) {
-          await supabase
-            .from("bookings")
-            .update({ status: "pending_admin" })
-            .eq("id", bookingId);
-        }
-      }
-
-      if (status === "rejected") {
-        // If any member rejects, cancel the booking
-        await supabase
-          .from("bookings")
-          .update({ status: "cancelled" })
-          .eq("id", bookingId);
-      }
+      // Booking status transitions (advance to pending_admin or flip to
+      // needs_replacement) are handled by the auto_advance_booking_on_member_response
+      // database trigger so they correctly account for room minimums.
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["pending-invites"] });
@@ -174,8 +159,39 @@ const MyBookings = () => {
     },
   });
 
+  const addReplacement = useMutation({
+    mutationFn: async ({ bookingId, email }: { bookingId: string; email: string }) => {
+      const clean = email.trim().toLowerCase();
+      if (!clean) throw new Error("Enter an email");
+      if (clean === (profile?.email || user?.email)?.toLowerCase()) {
+        throw new Error("You're already the organizer");
+      }
+      const { error: insertError } = await supabase
+        .from("booking_members")
+        .insert({ booking_id: bookingId, email: clean });
+      if (insertError) throw insertError;
+      // Flip booking back to pending_members so the new invite is awaited
+      await supabase
+        .from("bookings")
+        .update({ status: "pending_members" })
+        .eq("id", bookingId);
+    },
+    onSuccess: () => {
+      setReplacementEmail("");
+      queryClient.invalidateQueries({ queryKey: ["my-bookings"] });
+      queryClient.invalidateQueries({ queryKey: ["bookings"] });
+      toast({ title: "Invitation sent", description: "Waiting for them to accept." });
+    },
+    onError: (e: Error) => {
+      toast({ title: "Couldn't add member", description: e.message, variant: "destructive" });
+    },
+  });
+
   const activeBookings = (myBookings || []).filter(
     (b) => !["cancelled", "rejected"].includes(b.status) && b.date >= today
+  );
+  const needsReplacementBookings = (myBookings || []).filter(
+    (b) => b.status === "needs_replacement" && b.date >= today
   );
   const pastBookings = (myBookings || []).filter(
     (b) => ["cancelled", "rejected"].includes(b.status) || b.date < today
@@ -298,6 +314,45 @@ const MyBookings = () => {
 
   return (
     <div className="space-y-6">
+      {/* Bookings that need replacement members */}
+      {needsReplacementBookings.length > 0 && (
+        <div className="space-y-3">
+          <h2 className="flex items-center gap-2 text-lg font-bold text-destructive">
+            <AlertTriangle className="h-4 w-4" /> Action needed
+          </h2>
+          {needsReplacementBookings.map((booking: any) => {
+            const declined = ((booking.booking_members as any[]) || []).filter((m) => m.status === "rejected");
+            const room = (booking.rooms as any);
+            return (
+              <Card key={booking.id} className="border-destructive/50">
+                <CardContent className="space-y-3 p-4">
+                  <div className="space-y-1">
+                    <p className="font-semibold">{booking.title}</p>
+                    <p className="text-sm text-muted-foreground">
+                      {room?.name} • {booking.date} • {booking.start_time.slice(0, 5)}–{booking.end_time.slice(0, 5)}
+                    </p>
+                    <p className="text-sm text-destructive">
+                      {declined.length > 0
+                        ? `${declined.map((m: any) => m.email).join(", ")} declined.`
+                        : "Not enough members accepted."}{" "}
+                      Add a replacement or cancel — auto-cancel applies 30 min before start.
+                    </p>
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    <Button size="sm" variant="outline" onClick={() => { setReplacing(booking); setReplacementEmail(""); }}>
+                      <UserPlus className="mr-1 h-3 w-3" /> Add replacement
+                    </Button>
+                    <Button size="sm" variant="destructive" onClick={() => cancelBooking.mutate(booking.id)}>
+                      Cancel booking
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            );
+          })}
+        </div>
+      )}
+
       {/* Pending Invites */}
       {pendingInvites && pendingInvites.length > 0 && (
         <div className="space-y-3">
@@ -447,6 +502,32 @@ const MyBookings = () => {
         onClose={() => setEditing(null)}
         booking={editing}
       />
+
+      <Dialog open={!!replacing} onOpenChange={(o) => !o && setReplacing(null)}>
+        <DialogContent className="sm:max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Add replacement member</DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-muted-foreground">
+            Invite someone to fill the spot for "{replacing?.title}".
+          </p>
+          <Input
+            type="email"
+            placeholder="member@iimu.ac.in"
+            value={replacementEmail}
+            onChange={(e) => setReplacementEmail(e.target.value)}
+          />
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setReplacing(null)}>Close</Button>
+            <Button
+              disabled={addReplacement.isPending || !replacementEmail.trim()}
+              onClick={() => addReplacement.mutate({ bookingId: replacing.id, email: replacementEmail })}
+            >
+              {addReplacement.isPending ? "Sending…" : "Send invite"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

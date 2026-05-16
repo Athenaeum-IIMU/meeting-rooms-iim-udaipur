@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -37,6 +37,18 @@ const BookingModal = ({ open, onClose, defaultDate, defaultTime, defaultRoomId }
   const [members, setMembers] = useState<string[]>([]);
   const [conflictReason, setConflictReason] = useState<string | null>(null);
   const [checking, setChecking] = useState(false);
+
+  // Sync defaults whenever the modal is opened from a calendar slot
+  useEffect(() => {
+    if (!open) return;
+    if (defaultRoomId) setRoomId(defaultRoomId);
+    if (defaultDate) setDate(defaultDate);
+    if (defaultTime) {
+      setStartTime(defaultTime);
+      setEndTime(addHour(defaultTime));
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, defaultRoomId, defaultDate, defaultTime]);
 
   const selectedRoom = rooms?.find((r) => r.id === roomId);
   const minMembers = selectedRoom?.min_members || 3;
