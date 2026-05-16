@@ -502,6 +502,32 @@ const MyBookings = () => {
         onClose={() => setEditing(null)}
         booking={editing}
       />
+
+      <Dialog open={!!replacing} onOpenChange={(o) => !o && setReplacing(null)}>
+        <DialogContent className="sm:max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Add replacement member</DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-muted-foreground">
+            Invite someone to fill the spot for "{replacing?.title}".
+          </p>
+          <Input
+            type="email"
+            placeholder="member@iimu.ac.in"
+            value={replacementEmail}
+            onChange={(e) => setReplacementEmail(e.target.value)}
+          />
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setReplacing(null)}>Close</Button>
+            <Button
+              disabled={addReplacement.isPending || !replacementEmail.trim()}
+              onClick={() => addReplacement.mutate({ bookingId: replacing.id, email: replacementEmail })}
+            >
+              {addReplacement.isPending ? "Sending…" : "Send invite"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
