@@ -314,6 +314,45 @@ const MyBookings = () => {
 
   return (
     <div className="space-y-6">
+      {/* Bookings that need replacement members */}
+      {needsReplacementBookings.length > 0 && (
+        <div className="space-y-3">
+          <h2 className="flex items-center gap-2 text-lg font-bold text-destructive">
+            <AlertTriangle className="h-4 w-4" /> Action needed
+          </h2>
+          {needsReplacementBookings.map((booking: any) => {
+            const declined = ((booking.booking_members as any[]) || []).filter((m) => m.status === "rejected");
+            const room = (booking.rooms as any);
+            return (
+              <Card key={booking.id} className="border-destructive/50">
+                <CardContent className="space-y-3 p-4">
+                  <div className="space-y-1">
+                    <p className="font-semibold">{booking.title}</p>
+                    <p className="text-sm text-muted-foreground">
+                      {room?.name} • {booking.date} • {booking.start_time.slice(0, 5)}–{booking.end_time.slice(0, 5)}
+                    </p>
+                    <p className="text-sm text-destructive">
+                      {declined.length > 0
+                        ? `${declined.map((m: any) => m.email).join(", ")} declined.`
+                        : "Not enough members accepted."}{" "}
+                      Add a replacement or cancel — auto-cancel applies 30 min before start.
+                    </p>
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    <Button size="sm" variant="outline" onClick={() => { setReplacing(booking); setReplacementEmail(""); }}>
+                      <UserPlus className="mr-1 h-3 w-3" /> Add replacement
+                    </Button>
+                    <Button size="sm" variant="destructive" onClick={() => cancelBooking.mutate(booking.id)}>
+                      Cancel booking
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            );
+          })}
+        </div>
+      )}
+
       {/* Pending Invites */}
       {pendingInvites && pendingInvites.length > 0 && (
         <div className="space-y-3">
