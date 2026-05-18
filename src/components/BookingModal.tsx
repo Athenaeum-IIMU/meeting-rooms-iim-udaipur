@@ -109,6 +109,12 @@ const BookingModal = ({ open, onClose, defaultDate, defaultTime, defaultRoomId }
         setChecking(false);
         return;
       }
+      const durMin = toMinLocal(endTime) - toMinLocal(startTime);
+      if (durMin > 120) {
+        setConflictReason("A single booking can be at most 2 hours long.");
+        setChecking(false);
+        return;
+      }
       const startDateTime = new Date(`${date}T${startTime}`);
       if (startDateTime.getTime() < Date.now()) {
         setConflictReason("You cannot book a time that is already in the past.");
