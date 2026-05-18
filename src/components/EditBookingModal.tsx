@@ -53,6 +53,15 @@ const EditBookingModal = ({ open, onClose, booking }: EditBookingModalProps) => 
         throw new Error("You cannot move a booking to a time in the past.");
       }
 
+      // Per-booking max 2-hour duration
+      const toMin = (t: string) => {
+        const [h, m] = t.split(":").map(Number);
+        return h * 60 + m;
+      };
+      if (toMin(endTime) - toMin(startTime) > 120) {
+        throw new Error("A single booking can be at most 2 hours long.");
+      }
+
       // Conflict check
       const { data: hasConflict } = await supabase.rpc("check_booking_conflict", {
         p_room_id: roomId,
