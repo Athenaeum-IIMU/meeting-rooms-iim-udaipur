@@ -53,27 +53,18 @@ export const useBlockedSlots = (startDate: string, endDate: string) => {
       if (error) throw error;
       return data;
     },
+    refetchInterval: 30000,
+    refetchOnWindowFocus: true,
   });
 };
 
 /**
- * Subscribe to realtime updates on bookings, members, and blocked slots.
- * Invalidates relevant queries so calendar / admin / my-bookings refresh live.
+ * No-op: bookings and blocked_slots are no longer broadcast over Realtime
+ * (to avoid leaking row changes to all authenticated subscribers). Queries
+ * poll via refetchInterval / window focus instead.
  */
 export const useBookingsRealtime = () => {
-  const queryClient = useQueryClient();
-  useEffect(() => {
-    const channel = supabase
-      .channel("bookings-realtime")
-      .on("postgres_changes", { event: "*", schema: "public", table: "blocked_slots" }, () => {
-        queryClient.invalidateQueries({ queryKey: ["blocked_slots"] });
-        queryClient.invalidateQueries({ queryKey: ["admin-blocked-slots"] });
-      })
-      .subscribe();
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, [queryClient]);
+  // Intentionally empty.
 };
 
 export const useCreateBooking = () => {
