@@ -80,17 +80,7 @@ const AdminEditBookingModal = ({ open, onClose, booking }: AdminEditBookingModal
     mutationFn: async () => {
       if (!booking) throw new Error("No booking selected");
 
-      // Conflict check (excluding this booking)
-      const { data: hasConflict } = await supabase.rpc("check_booking_conflict", {
-        p_room_id: roomId,
-        p_date: date,
-        p_start_time: startTime,
-        p_end_time: endTime,
-        p_exclude_booking_id: booking.id,
-      });
-      if (hasConflict) throw new Error("Time slot conflicts with an existing booking.");
-
-      // Update booking
+      // Conflict check enforced server-side by trigger on bookings table.
       const { error: updateError } = await supabase
         .from("bookings")
         .update({

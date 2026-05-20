@@ -9,7 +9,6 @@ import { useRooms } from "@/hooks/useRooms";
 import { useCreateBooking } from "@/hooks/useBookings";
 import { Badge } from "@/components/ui/badge";
 import { X, MapPin, Users, Info, AlertTriangle } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
 
 interface BookingModalProps {
   open: boolean;
@@ -75,35 +74,11 @@ const BookingModal = ({ open, onClose, defaultDate, defaultTime, defaultRoomId }
       return;
     }
 
-    // Pre-flight conflict check so we can show a clear popup
+    // Client-only sanity checks. Conflict / overlap / daily-limit / blocked-slot
+    // checks are enforced server-side by triggers; their error messages bubble
+    // up via the mutation's onError toast.
     setChecking(true);
     try {
-      const [{ data: blocked }, { data: conflict }, { data: overlap }, { data: hours }] =
-        await Promise.all([
-          supabase.rpc("check_blocked_slot", {
-            p_room_id: roomId,
-            p_date: date,
-            p_start_time: startTime,
-            p_end_time: endTime,
-          }),
-          supabase.rpc("check_booking_conflict", {
-            p_room_id: roomId,
-            p_date: date,
-            p_start_time: startTime,
-            p_end_time: endTime,
-          }),
-          supabase.rpc("check_user_time_overlap", {
-            p_user_id: user.id,
-            p_date: date,
-            p_start_time: startTime,
-            p_end_time: endTime,
-          }),
-          supabase.rpc("get_user_daily_hours", {
-            p_user_id: user.id,
-            p_date: date,
-          }),
-        ]);
-
       if (endTime <= startTime) {
         setConflictReason("End time must be after start time.");
         setChecking(false);
@@ -118,39 +93,6 @@ const BookingModal = ({ open, onClose, defaultDate, defaultTime, defaultRoomId }
       const startDateTime = new Date(`${date}T${startTime}`);
       if (startDateTime.getTime() < Date.now()) {
         setConflictReason("You cannot book a time that is already in the past.");
-        setChecking(false);
-        return;
-      }
-      if (blocked) {
-        setConflictReason(
-          "An admin has blocked this room for the chosen time. Pick a different room or time."
-        );
-        setChecking(false);
-        return;
-      }
-      if (conflict) {
-        setConflictReason(
-          "This room is already booked during the time you chose. Try a different slot or another room."
-        );
-        setChecking(false);
-        return;
-      }
-      if (overlap) {
-        setConflictReason(
-          "You already have another booking that overlaps with this time. You can only be in one meeting at a time."
-        );
-        setChecking(false);
-        return;
-      }
-      const cur = parseIntervalLocal(hours || "00:00:00");
-      const add = toMinLocal(endTime) - toMinLocal(startTime);
-      if (cur + add > 240) {
-        const remaining = Math.max(0, 240 - cur);
-        setConflictReason(
-          `This would put you over the 4-hour daily limit. You have ${Math.floor(
-            remaining / 60
-          )}h ${remaining % 60}m left for this day.`
-        );
         setChecking(false);
         return;
       }
@@ -324,10 +266,6 @@ const BookingModal = ({ open, onClose, defaultDate, defaultTime, defaultRoomId }
   );
 };
 
-function parseIntervalLocal(i: string): number {
-  const p = i.split(":");
-  return parseInt(p[0]) * 60 + parseInt(p[1]);
-}
 function toMinLocal(t: string): number {
   const [h, m] = t.split(":").map(Number);
   return h * 60 + m;
