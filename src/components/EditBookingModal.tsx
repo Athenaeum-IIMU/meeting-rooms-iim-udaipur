@@ -62,45 +62,8 @@ const EditBookingModal = ({ open, onClose, booking }: EditBookingModalProps) => 
         throw new Error("A single booking can be at most 2 hours long.");
       }
 
-      // Conflict check
-      const { data: hasConflict } = await supabase.rpc("check_booking_conflict", {
-        p_room_id: roomId,
-        p_date: date,
-        p_start_time: startTime,
-        p_end_time: endTime,
-        p_exclude_booking_id: booking.id,
-      });
-      if (hasConflict) throw new Error("This time conflicts with an existing booking.");
-
-      // Blocked check
-      const { data: blocked } = await supabase.rpc("check_blocked_slot", {
-        p_room_id: roomId,
-        p_date: date,
-        p_start_time: startTime,
-        p_end_time: endTime,
-      });
-      if (blocked) throw new Error("This time is blocked by admin.");
-
-      // Personal overlap (excluding self)
-      const { data: overlap } = await supabase.rpc("check_user_time_overlap", {
-        p_user_id: user.id,
-        p_date: date,
-        p_start_time: startTime,
-        p_end_time: endTime,
-        p_exclude_booking_id: booking.id,
-      });
-      if (overlap) throw new Error("You already have another booking during this time.");
-
-      // 4hr cap (excluding self)
-      const { data: dailyHours } = await supabase.rpc("get_user_daily_hours", {
-        p_user_id: user.id,
-        p_date: date,
-        p_exclude_booking_id: booking.id,
-      });
-      const cur = parseInterval(dailyHours || "00:00:00");
-      const add = toMin(endTime) - toMin(startTime);
-      if (cur + add > 240) throw new Error("This change would exceed your 4-hour daily limit.");
-
+      // Conflict / blocked-slot / overlap / 4hr-cap checks are enforced
+      // server-side by triggers on the bookings table.
       const { error } = await supabase
         .from("bookings")
         .update({ title, room_id: roomId, date, start_time: startTime, end_time: endTime })
