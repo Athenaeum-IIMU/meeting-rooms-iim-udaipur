@@ -9,7 +9,6 @@ import { useRooms } from "@/hooks/useRooms";
 import { useCreateBooking } from "@/hooks/useBookings";
 import { Badge } from "@/components/ui/badge";
 import { X, MapPin, Users, Info, AlertTriangle } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
 
 interface BookingModalProps {
   open: boolean;
@@ -267,10 +266,6 @@ const BookingModal = ({ open, onClose, defaultDate, defaultTime, defaultRoomId }
   );
 };
 
-function parseIntervalLocal(i: string): number {
-  const p = i.split(":");
-  return parseInt(p[0]) * 60 + parseInt(p[1]);
-}
 function toMinLocal(t: string): number {
   const [h, m] = t.split(":").map(Number);
   return h * 60 + m;
