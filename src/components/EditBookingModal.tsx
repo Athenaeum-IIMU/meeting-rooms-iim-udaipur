@@ -157,13 +157,4 @@ const EditBookingModal = ({ open, onClose, booking }: EditBookingModalProps) => 
   );
 };
 
-function parseInterval(i: string): number {
-  const p = i.split(":");
-  return parseInt(p[0]) * 60 + parseInt(p[1]);
-}
-function toMin(t: string): number {
-  const [h, m] = t.split(":").map(Number);
-  return h * 60 + m;
-}
-
 export default EditBookingModal;
