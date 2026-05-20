@@ -8,8 +8,6 @@ export const useBookings = (date?: string) => {
   return useQuery({
     queryKey: ["bookings", date],
     queryFn: async () => {
-      // Auto-clean past unapproved bookings on each load
-      await supabase.rpc("cleanup_unapproved_past_bookings");
       let query = supabase
         .from("bookings")
         .select("*, rooms(name), booking_members(*)");
