@@ -358,6 +358,7 @@ export type Database = {
       }
       cleanup_unapproved_past_bookings: { Args: never; Returns: undefined }
       get_actor_email: { Args: { _user_id: string }; Returns: string }
+      get_send_email_secret: { Args: never; Returns: string }
       get_user_daily_hours: {
         Args: {
           p_date: string
