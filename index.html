@@ -3,34 +3,24 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <!-- TODO: Set the document title to the name of your application -->
     <title>Library meeting rooms booking</title>
-    <meta name="description" content="This is platform for IIM Community to book meeting rooms available in Library.
-Powered by Athenaeum">
-    <meta name="author" content="Lovable" />
+    <meta name="description" content="IIM Udaipur community portal for booking Library meeting rooms." />
 
-    <!-- TODO: Update og:title to match your application name -->
-    
-    
-    <meta property="og:type" content="website" />
-    <meta property="og:image" content="https://storage.googleapis.com/gpt-engineer-file-uploads/attachments/og-images/ac8fbc06-b158-4015-88f9-871d4653208f">
+    <!-- Block search indexing of this internal tool -->
+    <meta name="robots" content="noindex, nofollow, noarchive, nosnippet" />
+    <meta name="googlebot" content="noindex, nofollow" />
 
-    <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:site" content="@Lovable" />
-    <meta name="twitter:image" content="https://storage.googleapis.com/gpt-engineer-file-uploads/attachments/og-images/ac8fbc06-b158-4015-88f9-871d4653208f">
-    
-  
-  
-  
-  <meta property="og:title" content="Library meeting rooms booking">
-  <meta name="twitter:title" content="Library meeting rooms booking">
-  <meta property="og:description" content="This is platform for IIM Community to book meeting rooms available in Library.
-Powered by Athenaeum">
-  <meta name="twitter:description" content="This is platform for IIM Community to book meeting rooms available in Library.
-Powered by Athenaeum">
-  <link rel="icon" type="image/x-icon" href="/favicon.ico">
-</head>
+    <!-- Defense-in-depth CSP (frame-ancestors / X-Frame-Options / Permissions-Policy
+         must be set as HTTP headers at the hosting layer; meta CSP covers the rest). -->
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: blob: https:; connect-src 'self' https://*.supabase.co wss://*.supabase.co https://*.lovable.app https://*.lovable.dev; frame-ancestors 'none'; base-uri 'self'; form-action 'self'; object-src 'none'"
+    />
+    <meta http-equiv="X-Content-Type-Options" content="nosniff" />
+    <meta name="referrer" content="strict-origin-when-cross-origin" />
 
+    <link rel="icon" type="image/x-icon" href="/favicon.ico" />
+  </head>
   <body>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
