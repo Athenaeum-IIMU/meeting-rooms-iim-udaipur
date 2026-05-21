@@ -80,41 +80,18 @@ export const useCreateBooking = () => {
       user_id: string;
       members: string[];
     }) => {
-      // All validation (blocked slots, conflicts, per-user overlaps, daily
-      // 4-hour limit, 2-hour cap, past-date guard) is enforced server-side
-      // by triggers on the bookings table. We rely on those error messages.
-      const { data: bookingData, error } = await supabase
-        .from("bookings")
-        .insert({
-          room_id: booking.room_id,
-          title: booking.title,
-          date: booking.date,
-          start_time: booking.start_time,
-          end_time: booking.end_time,
-          user_id: booking.user_id,
-          status: booking.members.length > 0 ? "pending_members" : "pending_admin",
-        })
-        .select()
-        .single();
+      // Atomic insert (booking + invitees) in a single DB transaction.
+      // The server forces user_id = auth.uid() and enforces all validation.
+      const { data, error } = await supabase.rpc("create_booking_atomic", {
+        p_room_id: booking.room_id,
+        p_title: booking.title,
+        p_date: booking.date,
+        p_start_time: booking.start_time,
+        p_end_time: booking.end_time,
+        p_member_emails: booking.members.map((e) => e.trim().toLowerCase()),
+      });
       if (error) throw error;
-
-      // Insert members
-      if (booking.members.length > 0) {
-        const memberInserts = booking.members.map((email) => ({
-          booking_id: bookingData.id,
-          email: email.trim().toLowerCase(),
-        }));
-        const { error: memberError } = await supabase
-          .from("booking_members")
-          .insert(memberInserts);
-        if (memberError) {
-          // Clean up the orphan booking so the slot is free again
-          await supabase.from("bookings").delete().eq("id", bookingData.id);
-          throw new Error(memberError.message);
-        }
-      }
-
-      return bookingData;
+      return { id: data as string };
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["bookings"] });
