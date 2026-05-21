@@ -357,6 +357,17 @@ export type Database = {
         Returns: boolean
       }
       cleanup_unapproved_past_bookings: { Args: never; Returns: undefined }
+      create_booking_atomic: {
+        Args: {
+          p_date: string
+          p_end_time: string
+          p_member_emails?: string[]
+          p_room_id: string
+          p_start_time: string
+          p_title: string
+        }
+        Returns: string
+      }
       get_actor_email: { Args: { _user_id: string }; Returns: string }
       get_send_email_secret: { Args: never; Returns: string }
       get_user_daily_hours: {
