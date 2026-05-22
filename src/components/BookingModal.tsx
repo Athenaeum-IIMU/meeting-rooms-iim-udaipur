@@ -85,6 +85,11 @@ const BookingModal = ({ open, onClose, defaultDate, defaultTime, defaultRoomId }
         return;
       }
       const durMin = toMinLocal(endTime) - toMinLocal(startTime);
+      if (durMin < 30) {
+        setConflictReason("A booking must be at least 30 minutes long.");
+        setChecking(false);
+        return;
+      }
       if (durMin > 120) {
         setConflictReason("A single booking can be at most 2 hours long.");
         setChecking(false);
