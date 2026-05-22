@@ -85,6 +85,11 @@ const BookingModal = ({ open, onClose, defaultDate, defaultTime, defaultRoomId }
         return;
       }
       const durMin = toMinLocal(endTime) - toMinLocal(startTime);
+      if (durMin < 30) {
+        setConflictReason("A booking must be at least 30 minutes long.");
+        setChecking(false);
+        return;
+      }
       if (durMin > 120) {
         setConflictReason("A single booking can be at most 2 hours long.");
         setChecking(false);
@@ -197,6 +202,9 @@ const BookingModal = ({ open, onClose, defaultDate, defaultTime, defaultRoomId }
               <Label>End Time</Label>
               <Input type="time" value={endTime} onChange={(e) => setEndTime(e.target.value)} required />
             </div>
+            <p className="col-span-2 text-xs text-muted-foreground">
+              Duration must be between 30 min and 2 hr. You can book up to 4 hr/day combined across all rooms.
+            </p>
           </div>
 
           <div className="space-y-2">
