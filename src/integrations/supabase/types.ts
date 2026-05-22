@@ -176,6 +176,42 @@ export type Database = {
           },
         ]
       }
+      email_delivery_log: {
+        Row: {
+          booking_id: string | null
+          created_at: string
+          error: string | null
+          id: string
+          notification_id: string | null
+          recipient: string
+          status: string
+          subject: string
+          user_id: string | null
+        }
+        Insert: {
+          booking_id?: string | null
+          created_at?: string
+          error?: string | null
+          id?: string
+          notification_id?: string | null
+          recipient: string
+          status?: string
+          subject: string
+          user_id?: string | null
+        }
+        Update: {
+          booking_id?: string | null
+          created_at?: string
+          error?: string | null
+          id?: string
+          notification_id?: string | null
+          recipient?: string
+          status?: string
+          subject?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       notifications: {
         Row: {
           body: string
