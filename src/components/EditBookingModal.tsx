@@ -150,6 +150,9 @@ const EditBookingModal = ({ open, onClose, booking }: EditBookingModalProps) => 
               <Label>End</Label>
               <Input type="time" value={endTime} onChange={(e) => setEndTime(e.target.value)} required />
             </div>
+            <p className="col-span-2 text-xs text-muted-foreground">
+              Duration must be between 30 min and 2 hr. Daily limit is 4 hr per person across all rooms.
+            </p>
           </div>
 
           <div className="flex gap-2">
