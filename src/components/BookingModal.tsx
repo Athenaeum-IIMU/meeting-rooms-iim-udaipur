@@ -202,6 +202,9 @@ const BookingModal = ({ open, onClose, defaultDate, defaultTime, defaultRoomId }
               <Label>End Time</Label>
               <Input type="time" value={endTime} onChange={(e) => setEndTime(e.target.value)} required />
             </div>
+            <p className="col-span-2 text-xs text-muted-foreground">
+              Duration must be between 30 min and 2 hr. You can book up to 4 hr/day combined across all rooms.
+            </p>
           </div>
 
           <div className="space-y-2">
