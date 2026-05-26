@@ -363,6 +363,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      accept_booking_invite_atomic: {
+        Args: { p_accept: boolean; p_member_id: string }
+        Returns: undefined
+      }
       check_blocked_slot: {
         Args: {
           p_date: string
