@@ -160,6 +160,9 @@ const MyBookings = () => {
     mutationFn: async ({ bookingId, email }: { bookingId: string; email: string }) => {
       const clean = email.trim().toLowerCase();
       if (!clean) throw new Error("Enter an email");
+      if (!clean.endsWith("@iimu.ac.in")) {
+        throw new Error("Only @iimu.ac.in email addresses can be invited.");
+      }
       if (clean === (profile?.email || user?.email)?.toLowerCase()) {
         throw new Error("You're already the organizer");
       }
