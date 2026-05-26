@@ -54,7 +54,12 @@ const BookingModal = ({ open, onClose, defaultDate, defaultTime, defaultRoomId }
 
   const addMember = () => {
     const email = memberEmail.trim().toLowerCase();
-    if (email && !members.includes(email) && email !== user?.email) {
+    if (!email) return;
+    if (!email.endsWith("@iimu.ac.in")) {
+      setConflictReason("Only @iimu.ac.in email addresses can be invited.");
+      return;
+    }
+    if (!members.includes(email) && email !== user?.email?.toLowerCase()) {
       setMembers([...members, email]);
       setMemberEmail("");
     }
