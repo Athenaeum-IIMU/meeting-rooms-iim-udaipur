@@ -59,12 +59,33 @@ export const useBlockedSlots = (startDate: string, endDate: string) => {
 };
 
 /**
- * No-op: bookings and blocked_slots are no longer broadcast over Realtime
- * (to avoid leaking row changes to all authenticated subscribers). Queries
- * poll via refetchInterval / window focus instead.
+ * Subscribes to live changes on bookings, blocked_slots, and booking_members
+ * so the calendar and "My Bookings" views update without a manual refresh.
  */
 export const useBookingsRealtime = () => {
-  // Intentionally empty.
+  const queryClient = useQueryClient();
+  useEffect(() => {
+    const channel = supabase
+      .channel("realtime-bookings")
+      .on("postgres_changes", { event: "*", schema: "public", table: "bookings" }, () => {
+        queryClient.invalidateQueries({ queryKey: ["bookings"] });
+        queryClient.invalidateQueries({ queryKey: ["my-bookings"] });
+        queryClient.invalidateQueries({ queryKey: ["member-bookings"] });
+      })
+      .on("postgres_changes", { event: "*", schema: "public", table: "blocked_slots" }, () => {
+        queryClient.invalidateQueries({ queryKey: ["blocked_slots"] });
+      })
+      .on("postgres_changes", { event: "*", schema: "public", table: "booking_members" }, () => {
+        queryClient.invalidateQueries({ queryKey: ["pending-invites"] });
+        queryClient.invalidateQueries({ queryKey: ["member-bookings"] });
+        queryClient.invalidateQueries({ queryKey: ["my-bookings"] });
+        queryClient.invalidateQueries({ queryKey: ["bookings"] });
+      })
+      .subscribe();
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [queryClient]);
 };
 
 export const useCreateBooking = () => {
