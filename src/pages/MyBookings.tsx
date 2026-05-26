@@ -134,15 +134,12 @@ const MyBookings = () => {
   });
 
   const respondToInvite = useMutation({
-    mutationFn: async ({ memberId, bookingId, status }: { memberId: string; bookingId: string; status: string }) => {
-      const { error } = await supabase
-        .from("booking_members")
-        .update({ status, user_id: user!.id })
-        .eq("id", memberId);
+    mutationFn: async ({ memberId, status }: { memberId: string; bookingId: string; status: string }) => {
+      const { error } = await supabase.rpc("accept_booking_invite_atomic", {
+        p_member_id: memberId,
+        p_accept: status === "accepted",
+      });
       if (error) throw error;
-      // Booking status transitions (advance to pending_admin or flip to
-      // needs_replacement) are handled by the auto_advance_booking_on_member_response
-      // database trigger so they correctly account for room minimums.
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["pending-invites"] });
