@@ -425,6 +425,14 @@ export type Database = {
         }
         Returns: boolean
       }
+      is_booking_member: {
+        Args: { _booking_id: string; _user_id: string }
+        Returns: boolean
+      }
+      is_booking_owner: {
+        Args: { _booking_id: string; _user_id: string }
+        Returns: boolean
+      }
       notify_user_by_email: {
         Args: {
           p_body: string
