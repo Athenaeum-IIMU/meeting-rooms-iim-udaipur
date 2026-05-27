@@ -409,6 +409,20 @@ export type Database = {
         Returns: string
       }
       get_actor_email: { Args: { _user_id: string }; Returns: string }
+      get_calendar_busy_slots: {
+        Args: { p_end_date: string; p_start_date: string }
+        Returns: {
+          date: string
+          end_time: string
+          id: string
+          is_mine: boolean
+          room_id: string
+          start_time: string
+          status: string
+          title: string
+          user_id: string
+        }[]
+      }
       get_send_email_secret: { Args: never; Returns: string }
       get_user_daily_hours: {
         Args: {

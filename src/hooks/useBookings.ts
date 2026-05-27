@@ -27,14 +27,24 @@ export const useWeekBookings = (startDate: string, endDate: string) => {
   return useQuery({
     queryKey: ["bookings", "week", startDate, endDate],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("bookings")
-        .select("*, rooms(name), booking_members(*)")
-        .gte("date", startDate)
-        .lte("date", endDate)
-        .order("created_at", { ascending: true });
+      // Uses an anonymized SECURITY DEFINER RPC so users only see busy
+      // time/room info for other people's bookings (not their titles/owners).
+      const { data, error } = await supabase.rpc("get_calendar_busy_slots", {
+        p_start_date: startDate,
+        p_end_date: endDate,
+      });
       if (error) throw error;
-      return data;
+      return (data ?? []) as Array<{
+        id: string;
+        room_id: string;
+        date: string;
+        start_time: string;
+        end_time: string;
+        status: string;
+        is_mine: boolean;
+        title: string;
+        user_id: string | null;
+      }>;
     },
     refetchInterval: 30000,
     refetchOnWindowFocus: true,
