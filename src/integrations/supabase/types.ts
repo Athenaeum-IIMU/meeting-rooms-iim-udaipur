@@ -425,6 +425,7 @@ export type Database = {
         }
         Returns: boolean
       }
+      is_current_user_admin: { Args: never; Returns: boolean }
       notify_user_by_email: {
         Args: {
           p_body: string
