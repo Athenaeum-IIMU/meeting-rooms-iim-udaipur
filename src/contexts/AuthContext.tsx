@@ -70,16 +70,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setLoading(false);
   };
 
-  const checkAdmin = async (userId: string) => {
-    // Query user_roles directly. RLS allows users to view their own roles,
-    // so a regular user sees no row → not admin; an admin sees their row.
-    const { data } = await supabase
-      .from("user_roles")
-      .select("role")
-      .eq("user_id", userId)
-      .eq("role", "admin")
-      .maybeSingle();
-    setIsAdmin(!!data);
+  const checkAdmin = async (_userId: string) => {
+    // Server-side check via SECURITY DEFINER RPC. Returns true only if the
+    // caller's auth.uid() has the admin role — cannot be spoofed client-side.
+    const { data, error } = await supabase.rpc("is_current_user_admin");
+    setIsAdmin(!error && data === true);
   };
 
   const signOut = async () => {
