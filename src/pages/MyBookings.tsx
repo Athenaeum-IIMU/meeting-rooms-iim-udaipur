@@ -62,35 +62,39 @@ const MyBookings = () => {
     enabled: !!user,
   });
 
+  // Match by email so invites for users not yet linked (user_id NULL) show too.
+  const myEmail = (profile?.email || user?.email || "").toLowerCase();
+
   // Bookings where I'm a member (pending acceptance)
   const { data: pendingInvites } = useQuery({
-    queryKey: ["pending-invites", user?.id],
+    queryKey: ["pending-invites", myEmail],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("booking_members")
         .select("*, bookings(*, rooms(name, location))")
-        .eq("user_id", user!.id)
+        .ilike("email", myEmail)
         .eq("status", "pending");
       if (error) throw error;
       return data;
     },
-    enabled: !!user?.id,
+    enabled: !!myEmail,
   });
 
   // Bookings where I'm an accepted member (show in My Bookings as participant)
   const { data: memberBookings } = useQuery({
-    queryKey: ["member-bookings", user?.id],
+    queryKey: ["member-bookings", myEmail],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("booking_members")
         .select("*, bookings(*, rooms(name, location), booking_members(*))")
-        .eq("user_id", user!.id)
+        .ilike("email", myEmail)
         .eq("status", "accepted");
       if (error) throw error;
       return data;
     },
-    enabled: !!user?.id,
+    enabled: !!myEmail,
   });
+
 
   const inviteOwnerIds = useMemo(
     () => Array.from(new Set((pendingInvites || []).map((invite: any) => invite.bookings?.user_id).filter(Boolean))),

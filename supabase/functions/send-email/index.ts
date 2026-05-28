@@ -47,18 +47,23 @@ Deno.serve(async (req) => {
       })
     }
 
-    // Restrict recipient to a known profile email
-    const { data: profile } = await admin
-      .from('profiles')
-      .select('email')
-      .ilike('email', to)
-      .maybeSingle()
-    if (!profile) {
-      return new Response(JSON.stringify({ error: 'Recipient not allowed' }), {
-        status: 403,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      })
+    // Restrict recipient to a known profile email OR any @iimu.ac.in address
+    // (so we can email invitees who haven't created an account yet).
+    const isIimuEmail = to.toLowerCase().endsWith('@iimu.ac.in')
+    if (!isIimuEmail) {
+      const { data: profile } = await admin
+        .from('profiles')
+        .select('email')
+        .ilike('email', to)
+        .maybeSingle()
+      if (!profile) {
+        return new Response(JSON.stringify({ error: 'Recipient not allowed' }), {
+          status: 403,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        })
+      }
     }
+
 
     const host = Deno.env.get('SMTP_HOST')!
     const port = parseInt(Deno.env.get('SMTP_PORT') || '465', 10)
