@@ -396,6 +396,7 @@ export type Database = {
         }
         Returns: boolean
       }
+      cleanup_old_data: { Args: never; Returns: undefined }
       cleanup_unapproved_past_bookings: { Args: never; Returns: undefined }
       create_booking_atomic: {
         Args: {

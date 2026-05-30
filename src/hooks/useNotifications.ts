@@ -1,13 +1,14 @@
-import { useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 
+// Poll every 3 minutes instead of using realtime (Cloud usage optimization).
+const NOTIFICATIONS_POLL_INTERVAL = 3 * 60 * 1000;
+
 export const useNotifications = () => {
   const { user } = useAuth();
-  const queryClient = useQueryClient();
 
-  const query = useQuery({
+  return useQuery({
     queryKey: ["notifications", user?.id],
     queryFn: async () => {
       const { data, error } = await supabase
@@ -19,32 +20,9 @@ export const useNotifications = () => {
       return data;
     },
     enabled: !!user,
+    refetchInterval: NOTIFICATIONS_POLL_INTERVAL,
+    refetchOnWindowFocus: true,
   });
-
-  // Realtime subscription
-  useEffect(() => {
-    if (!user) return;
-    const channel = supabase
-      .channel(`notifications:${user.id}:${Math.random().toString(36).slice(2)}`)
-      .on(
-        "postgres_changes",
-        {
-          event: "*",
-          schema: "public",
-          table: "notifications",
-          filter: `user_id=eq.${user.id}`,
-        },
-        () => {
-          queryClient.invalidateQueries({ queryKey: ["notifications", user.id] });
-        }
-      )
-      .subscribe();
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, [user, queryClient]);
-
-  return query;
 };
 
 export const useMarkNotificationRead = () => {
