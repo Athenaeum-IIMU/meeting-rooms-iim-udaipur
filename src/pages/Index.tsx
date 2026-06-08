@@ -45,6 +45,22 @@ const statusColors: Record<string, string> = {
   needs_replacement: "bg-red-500/10 border-red-400 text-red-700",
 };
 
+const toMinutes = (time: string) => {
+  const [hours, minutes] = time.split(":").map(Number);
+  return hours * 60 + minutes;
+};
+
+const overlapsHour = (startTime: string, endTime: string, hour: number) => {
+  const slotStart = hour * 60;
+  const slotEnd = slotStart + 60;
+  return toMinutes(startTime) < slotEnd && toMinutes(endTime) > slotStart;
+};
+
+const startsInHour = (startTime: string, hour: number) => {
+  const start = toMinutes(startTime);
+  return start >= hour * 60 && start < (hour + 1) * 60;
+};
+
 const Index = () => {
   const [baseDate, setBaseDate] = useState(new Date());
   useBookingsRealtime();
@@ -118,15 +134,13 @@ const Index = () => {
           b.room_id === r.id &&
           b.date === todayStr &&
           ["approved", "pending_admin", "pending_members"].includes(b.status) &&
-          parseInt(b.start_time.split(":")[0]) <= currentHour &&
-          parseInt(b.end_time.split(":")[0]) > currentHour
+          overlapsHour(b.start_time, b.end_time, currentHour)
       );
       const blocked = blockedSlots?.some(
         (bs) =>
           bs.room_id === r.id &&
           bs.date === todayStr &&
-          parseInt(bs.start_time.split(":")[0]) <= currentHour &&
-          parseInt(bs.end_time.split(":")[0]) > currentHour
+          overlapsHour(bs.start_time, bs.end_time, currentHour)
       );
       if (!occupied && !blocked) freeNames.push(r.name);
     }
@@ -160,8 +174,7 @@ const Index = () => {
         b.room_id === roomId &&
         b.date === date &&
         !["cancelled", "rejected"].includes(b.status) &&
-        parseInt(b.start_time.split(":")[0]) <= hour &&
-        parseInt(b.end_time.split(":")[0]) > hour
+        overlapsHour(b.start_time, b.end_time, hour)
     ) || [];
   };
 
@@ -170,8 +183,7 @@ const Index = () => {
       (bs) =>
         bs.room_id === roomId &&
         bs.date === date &&
-        parseInt(bs.start_time.split(":")[0]) <= hour &&
-        parseInt(bs.end_time.split(":")[0]) > hour
+        overlapsHour(bs.start_time, bs.end_time, hour)
     );
   };
 
@@ -302,7 +314,7 @@ const Index = () => {
 
                       if (slotBookings.length > 0) {
                         return slotBookings.map((b) => {
-                          const isStart = parseInt(b.start_time.split(":")[0]) === hour;
+                          const isStart = startsInHour(b.start_time, hour);
                           if (!isStart) return null;
                           return (
                             <div
