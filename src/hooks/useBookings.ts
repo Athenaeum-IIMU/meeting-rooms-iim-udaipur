@@ -70,12 +70,34 @@ export const useBlockedSlots = (startDate: string, endDate: string) => {
 };
 
 /**
- * Realtime is intentionally disabled to reduce Cloud usage.
- * Data refreshes via polling (every 3 minutes) and on-mutation invalidation.
- * This no-op is kept so existing call sites compile unchanged.
+ * Lightweight realtime: subscribe to bookings + blocked_slots changes and
+ * invalidate the calendar caches so edits show up immediately. Polling
+ * remains as a safety net (every 3 minutes).
  */
 export const useBookingsRealtime = () => {
-  // intentionally empty
+  const queryClient = useQueryClient();
+  useEffect(() => {
+    const channel = supabase
+      .channel("calendar-changes")
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "bookings" },
+        () => {
+          queryClient.invalidateQueries({ queryKey: ["bookings"] });
+        }
+      )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "blocked_slots" },
+        () => {
+          queryClient.invalidateQueries({ queryKey: ["blocked_slots"] });
+        }
+      )
+      .subscribe();
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [queryClient]);
 };
 
 export const useCreateBooking = () => {
