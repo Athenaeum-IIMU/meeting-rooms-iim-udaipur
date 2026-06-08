@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { useEffect } from "react";
 
 // Polling interval: 3 minutes. We rely on polling (not realtime) to reduce
 // Cloud usage. Manual mutations also invalidate queries for instant feedback.
