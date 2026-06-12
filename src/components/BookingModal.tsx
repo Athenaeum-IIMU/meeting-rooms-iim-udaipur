@@ -15,10 +15,11 @@ interface BookingModalProps {
   onClose: () => void;
   defaultDate?: string;
   defaultTime?: string;
+  defaultEndTime?: string;
   defaultRoomId?: string;
 }
 
-const BookingModal = ({ open, onClose, defaultDate, defaultTime, defaultRoomId }: BookingModalProps) => {
+const BookingModal = ({ open, onClose, defaultDate, defaultTime, defaultEndTime, defaultRoomId }: BookingModalProps) => {
   const { user } = useAuth();
   const { data: rooms } = useRooms();
   const createBooking = useCreateBooking();
@@ -31,7 +32,7 @@ const BookingModal = ({ open, onClose, defaultDate, defaultTime, defaultRoomId }
   const [roomId, setRoomId] = useState(defaultRoomId || "");
   const [date, setDate] = useState(defaultDate || today.toISOString().split("T")[0]);
   const [startTime, setStartTime] = useState(defaultTime || "09:00");
-  const [endTime, setEndTime] = useState(defaultTime ? addHour(defaultTime) : "10:00");
+  const [endTime, setEndTime] = useState(defaultEndTime || (defaultTime ? addHour(defaultTime) : "10:00"));
   const [memberEmail, setMemberEmail] = useState("");
   const [members, setMembers] = useState<string[]>([]);
   const [conflictReason, setConflictReason] = useState<string | null>(null);
@@ -44,10 +45,10 @@ const BookingModal = ({ open, onClose, defaultDate, defaultTime, defaultRoomId }
     if (defaultDate) setDate(defaultDate);
     if (defaultTime) {
       setStartTime(defaultTime);
-      setEndTime(addHour(defaultTime));
+      setEndTime(defaultEndTime || addHour(defaultTime));
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open, defaultRoomId, defaultDate, defaultTime]);
+  }, [open, defaultRoomId, defaultDate, defaultTime, defaultEndTime]);
 
   const selectedRoom = rooms?.find((r) => r.id === roomId);
   const minMembers = selectedRoom?.min_members || 3;

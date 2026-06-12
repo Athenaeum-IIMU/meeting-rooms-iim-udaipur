@@ -68,6 +68,7 @@ const Index = () => {
   const [selectedSlot, setSelectedSlot] = useState<{
     date?: string;
     time?: string;
+    endTime?: string;
     roomId?: string;
   }>({});
   const [selectedRoom, setSelectedRoom] = useState<string | null>(null);
@@ -159,13 +160,63 @@ const Index = () => {
   };
   const goToday = () => setBaseDate(new Date());
 
-  const handleSlotClick = (date: string, hour: number, roomId: string) => {
+  const fmtTime = (mins: number) =>
+    `${String(Math.floor(mins / 60)).padStart(2, "0")}:${String(mins % 60).padStart(2, "0")}`;
+
+  const handleSlotClick = (
+    date: string,
+    roomId: string,
+    startMin: number,
+    endMin: number,
+  ) => {
     setSelectedSlot({
       date,
-      time: `${String(hour).padStart(2, "0")}:00`,
+      time: fmtTime(startMin),
+      endTime: fmtTime(endMin),
       roomId,
     });
     setModalOpen(true);
+  };
+
+  /** Free sub-ranges within [hour, hour+1) given existing bookings + blocked slots. */
+  const getFreeGaps = (roomId: string, date: string, hour: number) => {
+    const slotStart = hour * 60;
+    const slotEnd = slotStart + 60;
+    const busy: Array<[number, number]> = [];
+    bookings?.forEach((b) => {
+      if (
+        b.room_id === roomId &&
+        b.date === date &&
+        !["cancelled", "rejected"].includes(b.status) &&
+        overlapsHour(b.start_time, b.end_time, hour)
+      ) {
+        busy.push([
+          Math.max(toMinutes(b.start_time), slotStart),
+          Math.min(toMinutes(b.end_time), slotEnd),
+        ]);
+      }
+    });
+    blockedSlots?.forEach((bs) => {
+      if (
+        bs.room_id === roomId &&
+        bs.date === date &&
+        overlapsHour(bs.start_time, bs.end_time, hour)
+      ) {
+        busy.push([
+          Math.max(toMinutes(bs.start_time), slotStart),
+          Math.min(toMinutes(bs.end_time), slotEnd),
+        ]);
+      }
+    });
+    busy.sort((a, b) => a[0] - b[0]);
+    const gaps: Array<[number, number]> = [];
+    let cursor = slotStart;
+    for (const [s, e] of busy) {
+      if (s > cursor) gaps.push([cursor, s]);
+      cursor = Math.max(cursor, e);
+    }
+    if (cursor < slotEnd) gaps.push([cursor, slotEnd]);
+    return gaps;
   };
 
   const getBookingsForSlot = (roomId: string, date: string, hour: number) => {
@@ -302,60 +353,81 @@ const Index = () => {
                   <div key={di} className={cn("min-h-[3rem] border-l p-0.5", formatDate(d) === today && "bg-primary/5")}>
                     {filteredRooms?.map((room) => {
                       const slotBookings = getBookingsForSlot(room.id, dateStr, hour);
-                      const blocked = isBlocked(room.id, dateStr, hour);
+                      const blockedHere =
+                        blockedSlots?.filter(
+                          (bs) =>
+                            bs.room_id === room.id &&
+                            bs.date === dateStr &&
+                            overlapsHour(bs.start_time, bs.end_time, hour),
+                        ) || [];
+                      const gaps = getFreeGaps(room.id, dateStr, hour);
 
-                      if (blocked) {
-                        return (
-                          <div key={room.id} className="mb-0.5 rounded border border-dashed border-destructive/40 bg-destructive/10 px-1 py-0.5 text-[10px] text-destructive">
-                            🚫 {room.name}
-                          </div>
+                      const items: JSX.Element[] = [];
+
+                      blockedHere.forEach((bs) => {
+                        if (!startsInHour(bs.start_time, hour)) return;
+                        items.push(
+                          <div
+                            key={`bl-${bs.id}`}
+                            className="mb-0.5 rounded border border-dashed border-destructive/40 bg-destructive/10 px-1 py-0.5 text-[10px] text-destructive"
+                          >
+                            🚫 {room.name} {bs.start_time.slice(0, 5)}–{bs.end_time.slice(0, 5)}
+                          </div>,
                         );
-                      }
+                      });
 
-                      if (slotBookings.length > 0) {
-                        return slotBookings.map((b) => {
-                          const isStart = startsInHour(b.start_time, hour);
-                          if (!isStart) return null;
-                          return (
-                            <div
-                              key={b.id}
-                              className={cn(
-                                "mb-0.5 rounded border px-1 py-0.5 text-[10px] leading-tight",
-                                b.user_id !== user?.id ? "cursor-pointer hover:opacity-80" : "cursor-default",
-                                statusColors[b.status] || ""
-                              )}
-                              title={
-                                b.user_id !== user?.id
-                                  ? `${b.title} (${b.start_time}–${b.end_time}) — click to join waitlist`
-                                  : `${b.title} (${b.start_time}–${b.end_time}) - ${b.status}`
+                      slotBookings.forEach((b) => {
+                        if (!startsInHour(b.start_time, hour)) return;
+                        items.push(
+                          <div
+                            key={b.id}
+                            className={cn(
+                              "mb-0.5 rounded border px-1 py-0.5 text-[10px] leading-tight",
+                              b.user_id !== user?.id ? "cursor-pointer hover:opacity-80" : "cursor-default",
+                              statusColors[b.status] || "",
+                            )}
+                            title={
+                              b.user_id !== user?.id
+                                ? `${b.title} (${b.start_time}–${b.end_time}) — click to join waitlist`
+                                : `${b.title} (${b.start_time}–${b.end_time}) - ${b.status}`
+                            }
+                            onClick={() => {
+                              if (b.user_id !== user?.id) {
+                                setWaitlistSlot({
+                                  roomId: room.id,
+                                  roomName: room.name,
+                                  date: dateStr,
+                                  hour,
+                                });
                               }
-                              onClick={() => {
-                                if (b.user_id !== user?.id) {
-                                  setWaitlistSlot({
-                                    roomId: room.id,
-                                    roomName: room.name,
-                                    date: dateStr,
-                                    hour,
-                                  });
-                                }
-                              }}
-                            >
-                              <span className="font-medium">{room.name}</span>: {b.title}
-                              <div className="opacity-70">{b.start_time.slice(0, 5)}–{b.end_time.slice(0, 5)}</div>
-                            </div>
-                          );
-                        });
-                      }
+                            }}
+                          >
+                            <span className="font-medium">{room.name}</span>: {b.title}
+                            <div className="opacity-70">{b.start_time.slice(0, 5)}–{b.end_time.slice(0, 5)}</div>
+                          </div>,
+                        );
+                      });
 
-                      return (
-                        <div
-                          key={room.id}
-                          className="mb-0.5 cursor-pointer rounded px-1 py-0.5 text-[10px] text-muted-foreground/40 hover:bg-primary/10 hover:text-primary"
-                          onClick={() => handleSlotClick(dateStr, hour, room.id)}
-                        >
-                          {room.name}
-                        </div>
-                      );
+                      const hasBusy = slotBookings.length > 0 || blockedHere.length > 0;
+
+                      gaps.forEach(([s, e]) => {
+                        // When the whole hour is free, show the room name as before.
+                        // When only part of the hour is free, show the exact free window.
+                        const isWhole = !hasBusy;
+                        if (!isWhole && e - s < 30) return; // skip gaps too short to book
+                        items.push(
+                          <div
+                            key={`gap-${s}`}
+                            className="mb-0.5 cursor-pointer rounded px-1 py-0.5 text-[10px] text-muted-foreground/40 hover:bg-primary/10 hover:text-primary"
+                            onClick={() => handleSlotClick(dateStr, room.id, s, e)}
+                            title={isWhole ? `Book ${room.name}` : `Free ${fmtTime(s)}–${fmtTime(e)}`}
+                          >
+                            {isWhole ? room.name : `${room.name} · free ${fmtTime(s)}–${fmtTime(e)}`}
+                          </div>,
+                        );
+                      });
+
+                      return <div key={room.id}>{items}</div>;
                     })}
                   </div>
                 );
@@ -370,6 +442,7 @@ const Index = () => {
         onClose={() => setModalOpen(false)}
         defaultDate={selectedSlot.date}
         defaultTime={selectedSlot.time}
+        defaultEndTime={selectedSlot.endTime}
         defaultRoomId={selectedSlot.roomId}
       />
 
