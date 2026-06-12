@@ -442,6 +442,7 @@ const Index = () => {
         onClose={() => setModalOpen(false)}
         defaultDate={selectedSlot.date}
         defaultTime={selectedSlot.time}
+        defaultEndTime={selectedSlot.endTime}
         defaultRoomId={selectedSlot.roomId}
       />
 
