@@ -159,13 +159,63 @@ const Index = () => {
   };
   const goToday = () => setBaseDate(new Date());
 
-  const handleSlotClick = (date: string, hour: number, roomId: string) => {
+  const fmtTime = (mins: number) =>
+    `${String(Math.floor(mins / 60)).padStart(2, "0")}:${String(mins % 60).padStart(2, "0")}`;
+
+  const handleSlotClick = (
+    date: string,
+    roomId: string,
+    startMin: number,
+    endMin: number,
+  ) => {
     setSelectedSlot({
       date,
-      time: `${String(hour).padStart(2, "0")}:00`,
+      time: fmtTime(startMin),
+      endTime: fmtTime(endMin),
       roomId,
     });
     setModalOpen(true);
+  };
+
+  /** Free sub-ranges within [hour, hour+1) given existing bookings + blocked slots. */
+  const getFreeGaps = (roomId: string, date: string, hour: number) => {
+    const slotStart = hour * 60;
+    const slotEnd = slotStart + 60;
+    const busy: Array<[number, number]> = [];
+    bookings?.forEach((b) => {
+      if (
+        b.room_id === roomId &&
+        b.date === date &&
+        !["cancelled", "rejected"].includes(b.status) &&
+        overlapsHour(b.start_time, b.end_time, hour)
+      ) {
+        busy.push([
+          Math.max(toMinutes(b.start_time), slotStart),
+          Math.min(toMinutes(b.end_time), slotEnd),
+        ]);
+      }
+    });
+    blockedSlots?.forEach((bs) => {
+      if (
+        bs.room_id === roomId &&
+        bs.date === date &&
+        overlapsHour(bs.start_time, bs.end_time, hour)
+      ) {
+        busy.push([
+          Math.max(toMinutes(bs.start_time), slotStart),
+          Math.min(toMinutes(bs.end_time), slotEnd),
+        ]);
+      }
+    });
+    busy.sort((a, b) => a[0] - b[0]);
+    const gaps: Array<[number, number]> = [];
+    let cursor = slotStart;
+    for (const [s, e] of busy) {
+      if (s > cursor) gaps.push([cursor, s]);
+      cursor = Math.max(cursor, e);
+    }
+    if (cursor < slotEnd) gaps.push([cursor, slotEnd]);
+    return gaps;
   };
 
   const getBookingsForSlot = (roomId: string, date: string, hour: number) => {
