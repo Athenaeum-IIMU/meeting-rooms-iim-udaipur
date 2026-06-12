@@ -68,6 +68,7 @@ const Index = () => {
   const [selectedSlot, setSelectedSlot] = useState<{
     date?: string;
     time?: string;
+    endTime?: string;
     roomId?: string;
   }>({});
   const [selectedRoom, setSelectedRoom] = useState<string | null>(null);
