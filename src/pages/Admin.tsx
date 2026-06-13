@@ -652,7 +652,7 @@ const BlockSlotModal = ({
     <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>Block a Time Slot</DialogTitle>
+          <DialogTitle>{editingSlot ? "Edit Blocked Slot" : "Block a Time Slot"}</DialogTitle>
         </DialogHeader>
         <form
           onSubmit={(e) => {
