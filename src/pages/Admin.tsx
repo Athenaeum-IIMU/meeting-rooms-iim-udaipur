@@ -29,6 +29,7 @@ const Admin = () => {
   const { data: rooms } = useRooms();
   useBookingsRealtime();
   const [blockModalOpen, setBlockModalOpen] = useState(false);
+  const [editingBlockedSlot, setEditingBlockedSlot] = useState<any | null>(null);
   const [editingBooking, setEditingBooking] = useState<any | null>(null);
   const [rejectingBooking, setRejectingBooking] = useState<any | null>(null);
   const [rejectReason, setRejectReason] = useState("");
