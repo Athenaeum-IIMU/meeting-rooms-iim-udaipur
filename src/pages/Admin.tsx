@@ -15,7 +15,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { useRooms } from "@/hooks/useRooms";
 import { useBookingsRealtime } from "@/hooks/useBookings";
 import { useToast } from "@/hooks/use-toast";
-import { Check, X, Shield, Ban, CalendarDays, Clock, MapPin, Users, Pencil } from "lucide-react";
+import { Check, X, Shield, Ban, CalendarDays, Clock, MapPin, Users, Pencil, Trash2 } from "lucide-react";
 import AdminEditBookingModal from "@/components/AdminEditBookingModal";
 import AdminRoomsTab from "@/components/AdminRoomsTab";
 import AdminUsersTab from "@/components/AdminUsersTab";
@@ -29,6 +29,7 @@ const Admin = () => {
   const { data: rooms } = useRooms();
   useBookingsRealtime();
   const [blockModalOpen, setBlockModalOpen] = useState(false);
+  const [editingBlockedSlot, setEditingBlockedSlot] = useState<any | null>(null);
   const [editingBooking, setEditingBooking] = useState<any | null>(null);
   const [rejectingBooking, setRejectingBooking] = useState<any | null>(null);
   const [rejectReason, setRejectReason] = useState("");
@@ -416,19 +417,47 @@ const Admin = () => {
         </TabsContent>
 
         <TabsContent value="blocked" className="space-y-3 mt-4">
-          <Button onClick={() => setBlockModalOpen(true)} className="gap-1">
+          <Button onClick={() => { setEditingBlockedSlot(null); setBlockModalOpen(true); }} className="gap-1">
             <Ban className="h-4 w-4" /> Block a Slot
           </Button>
 
           {blockedSlots?.map((slot) => (
             <Card key={slot.id}>
-              <CardContent className="flex items-center justify-between p-3">
-                <div className="text-sm">
+              <CardContent className="flex items-center justify-between gap-2 p-3">
+                <div className="text-sm min-w-0">
                   <span className="font-medium">{(slot.rooms as any)?.name}</span>{" "}
                   <span className="text-muted-foreground">
                     • {slot.date} • {slot.start_time.slice(0, 5)}–{slot.end_time.slice(0, 5)}
                   </span>
-                  {slot.reason && <span className="text-xs text-muted-foreground ml-2">({slot.reason})</span>}
+                  {slot.reason && <div className="text-xs text-muted-foreground truncate">{slot.reason}</div>}
+                </div>
+                <div className="flex shrink-0 gap-1">
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    className="h-7 gap-1"
+                    onClick={() => { setEditingBlockedSlot(slot); setBlockModalOpen(true); }}
+                  >
+                    <Pencil className="h-3 w-3" /> Edit
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    className="h-7 gap-1 text-destructive hover:text-destructive"
+                    onClick={async () => {
+                      if (!confirm("Delete this blocked slot? Existing bookings will not be restored.")) return;
+                      const { error } = await supabase.from("blocked_slots").delete().eq("id", slot.id);
+                      if (error) {
+                        toast({ title: "Error", description: error.message, variant: "destructive" });
+                      } else {
+                        queryClient.invalidateQueries({ queryKey: ["admin-blocked-slots"] });
+                        queryClient.invalidateQueries({ queryKey: ["blocked_slots"] });
+                        toast({ title: "Blocked slot removed" });
+                      }
+                    }}
+                  >
+                    <Trash2 className="h-3 w-3" /> Delete
+                  </Button>
                 </div>
               </CardContent>
             </Card>
@@ -436,9 +465,10 @@ const Admin = () => {
 
           <BlockSlotModal
             open={blockModalOpen}
-            onClose={() => setBlockModalOpen(false)}
+            onClose={() => { setBlockModalOpen(false); setEditingBlockedSlot(null); }}
             rooms={rooms || []}
             userId={user!.id}
+            editingSlot={editingBlockedSlot}
           />
         </TabsContent>
 
@@ -540,11 +570,13 @@ const BlockSlotModal = ({
   onClose,
   rooms,
   userId,
+  editingSlot,
 }: {
   open: boolean;
   onClose: () => void;
   rooms: any[];
   userId: string;
+  editingSlot?: any | null;
 }) => {
   const queryClient = useQueryClient();
   const { toast } = useToast();
@@ -554,8 +586,33 @@ const BlockSlotModal = ({
   const [endTime, setEndTime] = useState("17:00");
   const [reason, setReason] = useState("");
 
+  useEffect(() => {
+    if (!open) return;
+    if (editingSlot) {
+      setRoomId(editingSlot.room_id);
+      setDate(editingSlot.date);
+      setStartTime(editingSlot.start_time.slice(0, 5));
+      setEndTime(editingSlot.end_time.slice(0, 5));
+      setReason(editingSlot.reason || "");
+    } else {
+      setRoomId("");
+      setDate("");
+      setStartTime("09:00");
+      setEndTime("17:00");
+      setReason("");
+    }
+  }, [open, editingSlot]);
+
   const blockSlot = useMutation({
     mutationFn: async () => {
+      if (editingSlot) {
+        const { error } = await supabase
+          .from("blocked_slots")
+          .update({ room_id: roomId, date, start_time: startTime, end_time: endTime, reason })
+          .eq("id", editingSlot.id);
+        if (error) throw error;
+        return;
+      }
       // First block the slot
       const { error } = await supabase
         .from("blocked_slots")
@@ -583,7 +640,7 @@ const BlockSlotModal = ({
       queryClient.invalidateQueries({ queryKey: ["admin-blocked-slots"] });
       queryClient.invalidateQueries({ queryKey: ["bookings"] });
       queryClient.invalidateQueries({ queryKey: ["blocked_slots"] });
-      toast({ title: "Slot blocked successfully" });
+      toast({ title: editingSlot ? "Blocked slot updated" : "Slot blocked successfully" });
       onClose();
     },
     onError: (e: Error) => {
@@ -595,7 +652,7 @@ const BlockSlotModal = ({
     <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>Block a Time Slot</DialogTitle>
+          <DialogTitle>{editingSlot ? "Edit Blocked Slot" : "Block a Time Slot"}</DialogTitle>
         </DialogHeader>
         <form
           onSubmit={(e) => {
@@ -634,7 +691,7 @@ const BlockSlotModal = ({
             <Input value={reason} onChange={(e) => setReason(e.target.value)} placeholder="Maintenance, event, etc." />
           </div>
           <Button type="submit" className="w-full" disabled={blockSlot.isPending}>
-            {blockSlot.isPending ? "Blocking..." : "Block Slot"}
+            {blockSlot.isPending ? "Saving..." : editingSlot ? "Save Changes" : "Block Slot"}
           </Button>
         </form>
       </DialogContent>
