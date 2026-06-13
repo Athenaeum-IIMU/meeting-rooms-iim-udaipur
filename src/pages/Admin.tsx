@@ -417,19 +417,47 @@ const Admin = () => {
         </TabsContent>
 
         <TabsContent value="blocked" className="space-y-3 mt-4">
-          <Button onClick={() => setBlockModalOpen(true)} className="gap-1">
+          <Button onClick={() => { setEditingBlockedSlot(null); setBlockModalOpen(true); }} className="gap-1">
             <Ban className="h-4 w-4" /> Block a Slot
           </Button>
 
           {blockedSlots?.map((slot) => (
             <Card key={slot.id}>
-              <CardContent className="flex items-center justify-between p-3">
-                <div className="text-sm">
+              <CardContent className="flex items-center justify-between gap-2 p-3">
+                <div className="text-sm min-w-0">
                   <span className="font-medium">{(slot.rooms as any)?.name}</span>{" "}
                   <span className="text-muted-foreground">
                     • {slot.date} • {slot.start_time.slice(0, 5)}–{slot.end_time.slice(0, 5)}
                   </span>
-                  {slot.reason && <span className="text-xs text-muted-foreground ml-2">({slot.reason})</span>}
+                  {slot.reason && <div className="text-xs text-muted-foreground truncate">{slot.reason}</div>}
+                </div>
+                <div className="flex shrink-0 gap-1">
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    className="h-7 gap-1"
+                    onClick={() => { setEditingBlockedSlot(slot); setBlockModalOpen(true); }}
+                  >
+                    <Pencil className="h-3 w-3" /> Edit
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    className="h-7 gap-1 text-destructive hover:text-destructive"
+                    onClick={async () => {
+                      if (!confirm("Delete this blocked slot? Existing bookings will not be restored.")) return;
+                      const { error } = await supabase.from("blocked_slots").delete().eq("id", slot.id);
+                      if (error) {
+                        toast({ title: "Error", description: error.message, variant: "destructive" });
+                      } else {
+                        queryClient.invalidateQueries({ queryKey: ["admin-blocked-slots"] });
+                        queryClient.invalidateQueries({ queryKey: ["blocked_slots"] });
+                        toast({ title: "Blocked slot removed" });
+                      }
+                    }}
+                  >
+                    <Trash2 className="h-3 w-3" /> Delete
+                  </Button>
                 </div>
               </CardContent>
             </Card>
@@ -437,9 +465,10 @@ const Admin = () => {
 
           <BlockSlotModal
             open={blockModalOpen}
-            onClose={() => setBlockModalOpen(false)}
+            onClose={() => { setBlockModalOpen(false); setEditingBlockedSlot(null); }}
             rooms={rooms || []}
             userId={user!.id}
+            editingSlot={editingBlockedSlot}
           />
         </TabsContent>
 
