@@ -21,7 +21,7 @@ interface BookingModalProps {
 }
 
 const BookingModal = ({ open, onClose, defaultDate, defaultTime, defaultEndTime, defaultRoomId }: BookingModalProps) => {
-  const { user } = useAuth();
+  const { user, isAdmin } = useAuth();
   const { data: rooms } = useRooms();
   const createBooking = useCreateBooking();
 
