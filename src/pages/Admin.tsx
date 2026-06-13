@@ -691,7 +691,7 @@ const BlockSlotModal = ({
             <Input value={reason} onChange={(e) => setReason(e.target.value)} placeholder="Maintenance, event, etc." />
           </div>
           <Button type="submit" className="w-full" disabled={blockSlot.isPending}>
-            {blockSlot.isPending ? "Blocking..." : "Block Slot"}
+            {blockSlot.isPending ? "Saving..." : editingSlot ? "Save Changes" : "Block Slot"}
           </Button>
         </form>
       </DialogContent>
