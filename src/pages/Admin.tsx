@@ -570,11 +570,13 @@ const BlockSlotModal = ({
   onClose,
   rooms,
   userId,
+  editingSlot,
 }: {
   open: boolean;
   onClose: () => void;
   rooms: any[];
   userId: string;
+  editingSlot?: any | null;
 }) => {
   const queryClient = useQueryClient();
   const { toast } = useToast();
@@ -584,8 +586,33 @@ const BlockSlotModal = ({
   const [endTime, setEndTime] = useState("17:00");
   const [reason, setReason] = useState("");
 
+  useEffect(() => {
+    if (!open) return;
+    if (editingSlot) {
+      setRoomId(editingSlot.room_id);
+      setDate(editingSlot.date);
+      setStartTime(editingSlot.start_time.slice(0, 5));
+      setEndTime(editingSlot.end_time.slice(0, 5));
+      setReason(editingSlot.reason || "");
+    } else {
+      setRoomId("");
+      setDate("");
+      setStartTime("09:00");
+      setEndTime("17:00");
+      setReason("");
+    }
+  }, [open, editingSlot]);
+
   const blockSlot = useMutation({
     mutationFn: async () => {
+      if (editingSlot) {
+        const { error } = await supabase
+          .from("blocked_slots")
+          .update({ room_id: roomId, date, start_time: startTime, end_time: endTime, reason })
+          .eq("id", editingSlot.id);
+        if (error) throw error;
+        return;
+      }
       // First block the slot
       const { error } = await supabase
         .from("blocked_slots")
@@ -613,7 +640,7 @@ const BlockSlotModal = ({
       queryClient.invalidateQueries({ queryKey: ["admin-blocked-slots"] });
       queryClient.invalidateQueries({ queryKey: ["bookings"] });
       queryClient.invalidateQueries({ queryKey: ["blocked_slots"] });
-      toast({ title: "Slot blocked successfully" });
+      toast({ title: editingSlot ? "Blocked slot updated" : "Slot blocked successfully" });
       onClose();
     },
     onError: (e: Error) => {
