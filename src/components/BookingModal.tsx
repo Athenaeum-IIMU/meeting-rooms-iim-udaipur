@@ -114,6 +114,27 @@ const BookingModal = ({ open, onClose, defaultDate, defaultTime, defaultEndTime,
       setChecking(false);
     }
 
+    // Ensure every invited member already has a profile (has signed in once).
+    // Admins are exempt. Single cheap query — keeps cloud usage low.
+    if (!isAdmin && members.length > 0) {
+      const { data: existing, error: profErr } = await supabase
+        .from("profiles")
+        .select("email")
+        .in("email", members);
+      if (profErr) {
+        setConflictReason(profErr.message);
+        return;
+      }
+      const found = new Set((existing ?? []).map((p) => p.email.toLowerCase()));
+      const missing = members.filter((m) => !found.has(m.toLowerCase()));
+      if (missing.length > 0) {
+        setConflictReason(
+          `These people haven't signed in to the platform yet:\n\n${missing.join("\n")}\n\nAsk them to log in at least once, then invite them again.`
+        );
+        return;
+      }
+    }
+
     await createBooking.mutateAsync({
       room_id: roomId,
       title,
