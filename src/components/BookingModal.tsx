@@ -7,6 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useAuth } from "@/contexts/AuthContext";
 import { useRooms } from "@/hooks/useRooms";
 import { useCreateBooking } from "@/hooks/useBookings";
+import { supabase } from "@/integrations/supabase/client";
 import { Badge } from "@/components/ui/badge";
 import { X, MapPin, Users, Info, AlertTriangle } from "lucide-react";
 
@@ -20,7 +21,7 @@ interface BookingModalProps {
 }
 
 const BookingModal = ({ open, onClose, defaultDate, defaultTime, defaultEndTime, defaultRoomId }: BookingModalProps) => {
-  const { user } = useAuth();
+  const { user, isAdmin } = useAuth();
   const { data: rooms } = useRooms();
   const createBooking = useCreateBooking();
 
@@ -111,6 +112,27 @@ const BookingModal = ({ open, onClose, defaultDate, defaultTime, defaultEndTime,
       // Fall through and let the mutation handle any unexpected error
     } finally {
       setChecking(false);
+    }
+
+    // Ensure every invited member already has a profile (has signed in once).
+    // Admins are exempt. Single cheap query — keeps cloud usage low.
+    if (!isAdmin && members.length > 0) {
+      const { data: existing, error: profErr } = await supabase
+        .from("profiles")
+        .select("email")
+        .in("email", members);
+      if (profErr) {
+        setConflictReason(profErr.message);
+        return;
+      }
+      const found = new Set((existing ?? []).map((p) => p.email.toLowerCase()));
+      const missing = members.filter((m) => !found.has(m.toLowerCase()));
+      if (missing.length > 0) {
+        setConflictReason(
+          `These people haven't signed in to the platform yet:\n\n${missing.join("\n")}\n\nAsk them to log in at least once, then invite them again.`
+        );
+        return;
+      }
     }
 
     await createBooking.mutateAsync({
