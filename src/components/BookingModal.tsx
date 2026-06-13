@@ -7,6 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useAuth } from "@/contexts/AuthContext";
 import { useRooms } from "@/hooks/useRooms";
 import { useCreateBooking } from "@/hooks/useBookings";
+import { supabase } from "@/integrations/supabase/client";
 import { Badge } from "@/components/ui/badge";
 import { X, MapPin, Users, Info, AlertTriangle } from "lucide-react";
 
