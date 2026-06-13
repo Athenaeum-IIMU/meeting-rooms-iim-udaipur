@@ -15,7 +15,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { useRooms } from "@/hooks/useRooms";
 import { useBookingsRealtime } from "@/hooks/useBookings";
 import { useToast } from "@/hooks/use-toast";
-import { Check, X, Shield, Ban, CalendarDays, Clock, MapPin, Users, Pencil } from "lucide-react";
+import { Check, X, Shield, Ban, CalendarDays, Clock, MapPin, Users, Pencil, Trash2 } from "lucide-react";
 import AdminEditBookingModal from "@/components/AdminEditBookingModal";
 import AdminRoomsTab from "@/components/AdminRoomsTab";
 import AdminUsersTab from "@/components/AdminUsersTab";
