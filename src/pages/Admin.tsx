@@ -133,6 +133,24 @@ const Admin = () => {
     enabled: isAdmin,
   });
 
+  // Failed booking attempts
+  const { data: failedAttempts } = useQuery({
+    queryKey: ["admin-failed-attempts"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("booking_attempts")
+        .select("*, rooms(name)")
+        .eq("success", false)
+        .order("created_at", { ascending: false })
+        .limit(100);
+      if (error) throw error;
+      return data;
+    },
+    enabled: isAdmin,
+  });
+
+
+
   const approveBooking = useMutation({
     mutationFn: async (bookingId: string) => {
       const { error } = await supabase
