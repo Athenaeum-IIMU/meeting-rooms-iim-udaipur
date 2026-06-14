@@ -133,6 +133,24 @@ const Admin = () => {
     enabled: isAdmin,
   });
 
+  // Failed booking attempts
+  const { data: failedAttempts } = useQuery({
+    queryKey: ["admin-failed-attempts"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("booking_attempts")
+        .select("*, rooms(name)")
+        .eq("success", false)
+        .order("created_at", { ascending: false })
+        .limit(100);
+      if (error) throw error;
+      return data;
+    },
+    enabled: isAdmin,
+  });
+
+
+
   const approveBooking = useMutation({
     mutationFn: async (bookingId: string) => {
       const { error } = await supabase
@@ -233,7 +251,11 @@ const Admin = () => {
             <UserCog className="h-3 w-3" /> Users
           </TabsTrigger>
           <TabsTrigger value="audit">
+
             <ScrollText className="mr-1 h-3 w-3" /> Audit Log
+          </TabsTrigger>
+          <TabsTrigger value="failed">
+            Failed Attempts{failedAttempts?.length ? ` (${failedAttempts.length})` : ""}
           </TabsTrigger>
         </TabsList>
 
@@ -497,6 +519,34 @@ const Admin = () => {
                   <Badge variant="outline" className="ml-2 shrink-0 text-xs">
                     {entry.action}
                   </Badge>
+                </CardContent>
+              </Card>
+            ))
+          )}
+        </TabsContent>
+
+        <TabsContent value="failed" className="space-y-2 mt-4">
+          {!failedAttempts || failedAttempts.length === 0 ? (
+            <p className="text-sm text-muted-foreground">No failed booking attempts recorded.</p>
+          ) : (
+            failedAttempts.map((a: any) => (
+              <Card key={a.id}>
+                <CardContent className="p-3 text-sm space-y-1">
+                  <div className="flex items-start justify-between gap-2">
+                    <p className="font-medium truncate">
+                      {a.user_email || "unknown"} — {a.title || "(no title)"}
+                    </p>
+                    <Badge variant="destructive" className="shrink-0 text-xs">failed</Badge>
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    {a.rooms?.name || "—"} • {a.date || "—"}
+                    {a.start_time ? ` ${String(a.start_time).slice(0,5)}–${String(a.end_time).slice(0,5)}` : ""}
+                    {" • "}
+                    {formatDistanceToNow(new Date(a.created_at), { addSuffix: true })}
+                  </p>
+                  {a.error_message && (
+                    <p className="text-xs text-destructive break-words">{a.error_message}</p>
+                  )}
                 </CardContent>
               </Card>
             ))
