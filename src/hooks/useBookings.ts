@@ -114,7 +114,7 @@ export const useCreateBooking = () => {
       user_id: string;
       members: string[];
     }) => {
-      const { data, error } = await supabase.rpc("create_booking_atomic", {
+      const { data, error } = await supabase.rpc("create_booking_logged", {
         p_room_id: booking.room_id,
         p_title: booking.title,
         p_date: booking.date,
