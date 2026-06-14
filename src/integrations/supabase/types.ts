@@ -91,6 +91,54 @@ export type Database = {
           },
         ]
       }
+      booking_attempts: {
+        Row: {
+          booking_id: string | null
+          created_at: string
+          date: string | null
+          end_time: string | null
+          error_message: string | null
+          id: string
+          member_emails: string[] | null
+          room_id: string | null
+          start_time: string | null
+          success: boolean
+          title: string | null
+          user_email: string | null
+          user_id: string | null
+        }
+        Insert: {
+          booking_id?: string | null
+          created_at?: string
+          date?: string | null
+          end_time?: string | null
+          error_message?: string | null
+          id?: string
+          member_emails?: string[] | null
+          room_id?: string | null
+          start_time?: string | null
+          success: boolean
+          title?: string | null
+          user_email?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          booking_id?: string | null
+          created_at?: string
+          date?: string | null
+          end_time?: string | null
+          error_message?: string | null
+          id?: string
+          member_emails?: string[] | null
+          room_id?: string | null
+          start_time?: string | null
+          success?: boolean
+          title?: string | null
+          user_email?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       booking_members: {
         Row: {
           booking_id: string
@@ -399,6 +447,17 @@ export type Database = {
       cleanup_old_data: { Args: never; Returns: undefined }
       cleanup_unapproved_past_bookings: { Args: never; Returns: undefined }
       create_booking_atomic: {
+        Args: {
+          p_date: string
+          p_end_time: string
+          p_member_emails?: string[]
+          p_room_id: string
+          p_start_time: string
+          p_title: string
+        }
+        Returns: string
+      }
+      create_booking_logged: {
         Args: {
           p_date: string
           p_end_time: string
