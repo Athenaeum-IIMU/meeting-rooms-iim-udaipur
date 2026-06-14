@@ -251,6 +251,7 @@ const Admin = () => {
             <UserCog className="h-3 w-3" /> Users
           </TabsTrigger>
           <TabsTrigger value="audit">
+
             <ScrollText className="mr-1 h-3 w-3" /> Audit Log
           </TabsTrigger>
         </TabsList>
