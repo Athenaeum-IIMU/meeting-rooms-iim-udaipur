@@ -254,6 +254,9 @@ const Admin = () => {
 
             <ScrollText className="mr-1 h-3 w-3" /> Audit Log
           </TabsTrigger>
+          <TabsTrigger value="failed">
+            Failed Attempts{failedAttempts?.length ? ` (${failedAttempts.length})` : ""}
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="pending" className="space-y-3 mt-4">
