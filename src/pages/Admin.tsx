@@ -524,6 +524,34 @@ const Admin = () => {
             ))
           )}
         </TabsContent>
+
+        <TabsContent value="failed" className="space-y-2 mt-4">
+          {!failedAttempts || failedAttempts.length === 0 ? (
+            <p className="text-sm text-muted-foreground">No failed booking attempts recorded.</p>
+          ) : (
+            failedAttempts.map((a: any) => (
+              <Card key={a.id}>
+                <CardContent className="p-3 text-sm space-y-1">
+                  <div className="flex items-start justify-between gap-2">
+                    <p className="font-medium truncate">
+                      {a.user_email || "unknown"} — {a.title || "(no title)"}
+                    </p>
+                    <Badge variant="destructive" className="shrink-0 text-xs">failed</Badge>
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    {a.rooms?.name || "—"} • {a.date || "—"}
+                    {a.start_time ? ` ${String(a.start_time).slice(0,5)}–${String(a.end_time).slice(0,5)}` : ""}
+                    {" • "}
+                    {formatDistanceToNow(new Date(a.created_at), { addSuffix: true })}
+                  </p>
+                  {a.error_message && (
+                    <p className="text-xs text-destructive break-words">{a.error_message}</p>
+                  )}
+                </CardContent>
+              </Card>
+            ))
+          )}
+        </TabsContent>
       </Tabs>
 
       <AdminEditBookingModal
