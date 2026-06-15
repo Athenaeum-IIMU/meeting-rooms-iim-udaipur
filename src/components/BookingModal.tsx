@@ -71,6 +71,28 @@ const BookingModal = ({ open, onClose, defaultDate, defaultTime, defaultEndTime,
     setMembers(members.filter((m) => m !== email));
   };
 
+  const logAttempt = async (errorMessage: string) => {
+    try {
+      await supabase.rpc("log_booking_attempt", {
+        p_room_id: roomId || "00000000-0000-0000-0000-000000000000",
+        p_title: title || "(no title)",
+        p_date: date,
+        p_start_time: startTime,
+        p_end_time: endTime,
+        p_member_emails: members,
+        p_error_message: errorMessage,
+      });
+    } catch {
+      // best-effort logging; never block the UX
+    }
+  };
+
+  const fail = async (reason: string) => {
+    setConflictReason(reason);
+    setChecking(false);
+    await logAttempt(reason);
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user) return;
@@ -78,73 +100,71 @@ const BookingModal = ({ open, onClose, defaultDate, defaultTime, defaultEndTime,
     // +1 for the booker themselves
     const totalMembers = members.length + 1;
     if (totalMembers < minMembers) {
+      await logAttempt(
+        `Not enough members: ${totalMembers}/${minMembers} required for ${selectedRoom?.name ?? "room"}`
+      );
       return;
     }
 
     // Client-only sanity checks. Conflict / overlap / daily-limit / blocked-slot
     // checks are enforced server-side by triggers; their error messages bubble
-    // up via the mutation's onError toast.
+    // up via the mutation's onError toast (and are logged by create_booking_logged).
     setChecking(true);
-    try {
-      if (endTime <= startTime) {
-        setConflictReason("End time must be after start time.");
-        setChecking(false);
-        return;
-      }
-      const durMin = toMinLocal(endTime) - toMinLocal(startTime);
-      if (durMin < 30) {
-        setConflictReason("A booking must be at least 30 minutes long.");
-        setChecking(false);
-        return;
-      }
-      if (durMin > 120) {
-        setConflictReason("A single booking can be at most 2 hours long.");
-        setChecking(false);
-        return;
-      }
-      const startDateTime = new Date(`${date}T${startTime}`);
-      if (startDateTime.getTime() < Date.now()) {
-        setConflictReason("You cannot book a time that is already in the past.");
-        setChecking(false);
-        return;
-      }
-    } catch (err) {
-      // Fall through and let the mutation handle any unexpected error
-    } finally {
-      setChecking(false);
+    if (endTime <= startTime) {
+      await fail("End time must be after start time.");
+      return;
     }
+    const durMin = toMinLocal(endTime) - toMinLocal(startTime);
+    if (durMin < 30) {
+      await fail("A booking must be at least 30 minutes long.");
+      return;
+    }
+    if (durMin > 120) {
+      await fail("A single booking can be at most 2 hours long.");
+      return;
+    }
+    const startDateTime = new Date(`${date}T${startTime}`);
+    if (startDateTime.getTime() < Date.now()) {
+      await fail("You cannot book a time that is already in the past.");
+      return;
+    }
+    setChecking(false);
 
     // Ensure every invited member already has a profile (has signed in once).
-    // Admins are exempt. Single cheap query — keeps cloud usage low.
+    // Admins are exempt.
     if (!isAdmin && members.length > 0) {
       const { data: missing, error: profErr } = await supabase.rpc(
         "filter_unregistered_emails",
         { p_emails: members }
       );
       if (profErr) {
-        setConflictReason(profErr.message);
+        await fail(profErr.message);
         return;
       }
       if (missing && missing.length > 0) {
-        setConflictReason(
+        await fail(
           `These people haven't signed in to the platform yet:\n\n${missing.join("\n")}\n\nAsk them to log in at least once, then invite them again.`
         );
         return;
       }
     }
 
-    await createBooking.mutateAsync({
-      room_id: roomId,
-      title,
-      date,
-      start_time: startTime,
-      end_time: endTime,
-      user_id: user.id,
-      members,
-    });
-
-    onClose();
-    resetForm();
+    try {
+      await createBooking.mutateAsync({
+        room_id: roomId,
+        title,
+        date,
+        start_time: startTime,
+        end_time: endTime,
+        user_id: user.id,
+        members,
+      });
+      onClose();
+      resetForm();
+    } catch {
+      // create_booking_logged already records the failed attempt server-side
+      // and useCreateBooking shows the destructive toast. Nothing else to do.
+    }
   };
 
   const resetForm = () => {
