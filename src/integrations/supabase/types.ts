@@ -504,6 +504,18 @@ export type Database = {
         Returns: boolean
       }
       is_current_user_admin: { Args: never; Returns: boolean }
+      log_booking_attempt: {
+        Args: {
+          p_date: string
+          p_end_time: string
+          p_error_message: string
+          p_member_emails: string[]
+          p_room_id: string
+          p_start_time: string
+          p_title: string
+        }
+        Returns: undefined
+      }
       notify_user_by_email: {
         Args: {
           p_body: string
