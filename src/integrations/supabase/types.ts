@@ -468,6 +468,10 @@ export type Database = {
         }
         Returns: string
       }
+      filter_unregistered_emails: {
+        Args: { p_emails: string[] }
+        Returns: string[]
+      }
       get_actor_email: { Args: { _user_id: string }; Returns: string }
       get_calendar_busy_slots: {
         Args: { p_end_date: string; p_start_date: string }
