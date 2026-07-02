@@ -363,7 +363,7 @@ const Admin = () => {
                   onClick={() => {
                     if (confirm(`Reject all ${expiredPending.length} expired pending booking(s)?`)) {
                       expiredPending.forEach((b) =>
-                        rejectBooking.mutate({ id: b.id, reason: "Booking start time passed before approval." })
+                        rejectBooking.mutate({ bookingId: b.id, reason: "Booking start time passed before approval." })
                       );
                     }
                   }}
