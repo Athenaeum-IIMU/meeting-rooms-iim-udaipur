@@ -48,7 +48,8 @@ const Admin = () => {
     return () => clearTimeout(t);
   }, [highlightId]);
 
-  // Pending admin bookings ordered by created_at (first come first serve)
+  // Pending admin bookings — ordered by the booking's own start time so the
+  // ones that need action soonest float to the top.
   const { data: pendingBookings } = useQuery({
     queryKey: ["admin-pending"],
     queryFn: async () => {
@@ -56,12 +57,27 @@ const Admin = () => {
         .from("bookings")
         .select("*, rooms(name), booking_members(*)")
         .eq("status", "pending_admin")
-        .order("created_at", { ascending: true });
+        .order("date", { ascending: true })
+        .order("start_time", { ascending: true });
       if (error) throw error;
       return data;
     },
     enabled: isAdmin,
   });
+
+  // Split into actionable (still in the future) vs. expired (already started).
+  // Expired ones can no longer be approved — the DB rejects past-start bookings.
+  const { actionablePending, expiredPending } = useMemo(() => {
+    const now = Date.now();
+    const actionable: any[] = [];
+    const expired: any[] = [];
+    (pendingBookings || []).forEach((b: any) => {
+      const startsAt = new Date(`${b.date}T${b.start_time}`).getTime();
+      if (startsAt <= now) expired.push(b);
+      else actionable.push(b);
+    });
+    return { actionablePending: actionable, expiredPending: expired };
+  }, [pendingBookings]);
 
   // All bookings for overview
   const { data: allBookings } = useQuery({
