@@ -256,7 +256,7 @@ const Admin = () => {
       <Tabs value={activeTab} onValueChange={setActiveTab}>
         <TabsList>
           <TabsTrigger value="pending">
-            Pending Approvals {pendingBookings?.length ? `(${pendingBookings.length})` : ""}
+            Pending Approvals {actionablePending.length ? `(${actionablePending.length})` : ""}
           </TabsTrigger>
           <TabsTrigger value="all">All Bookings</TabsTrigger>
           <TabsTrigger value="blocked">Blocked Slots</TabsTrigger>
