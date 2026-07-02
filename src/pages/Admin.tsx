@@ -276,93 +276,134 @@ const Admin = () => {
         </TabsList>
 
         <TabsContent value="pending" className="space-y-3 mt-4">
-          {pendingBookings && pendingBookings.length > 0 && (
+          {actionablePending.length > 0 && (
             <div className="flex justify-end">
               <Button
                 size="sm"
                 variant="outline"
-                onClick={() => approveAllPending.mutate(pendingBookings.map((b) => b.id))}
+                onClick={() => approveAllPending.mutate(actionablePending.map((b) => b.id))}
                 disabled={approveAllPending.isPending}
                 className="gap-1"
               >
-                <Check className="h-3 w-3" /> Approve all ({pendingBookings.length})
+                <Check className="h-3 w-3" /> Approve all ({actionablePending.length})
               </Button>
             </div>
           )}
-          {pendingBookings?.length === 0 && (
+          {actionablePending.length === 0 && expiredPending.length === 0 && (
             <p className="text-sm text-muted-foreground">No pending approvals.</p>
           )}
-          {pendingBookings?.map((booking, index) => {
+
+          {actionablePending.map((booking, index) => {
             const isH = booking.id === highlightId;
             return (
-            <Card
-              key={booking.id}
-              ref={isH ? highlightRef : undefined}
-              className={isH ? "ring-2 ring-primary ring-offset-2" : ""}
-            >
-              <CardContent className="p-4">
-                <div className="flex items-start justify-between">
-                  <div className="space-y-1">
-                    <div className="flex items-center gap-2">
-                      <Badge variant="outline" className="text-xs">#{index + 1}</Badge>
-                      <h3 className="font-semibold">{booking.title}</h3>
-                    </div>
-                    <div className="flex flex-wrap gap-3 text-sm text-muted-foreground">
-                      <span className="flex items-center gap-1">
-                        <MapPin className="h-3 w-3" /> {(booking.rooms as any)?.name}
-                      </span>
-                      <span className="flex items-center gap-1">
-                        <CalendarDays className="h-3 w-3" /> {booking.date}
-                      </span>
-                      <span className="flex items-center gap-1">
-                        <Clock className="h-3 w-3" /> {booking.start_time.slice(0, 5)}–{booking.end_time.slice(0, 5)}
-                      </span>
-                    </div>
-                    <p className="text-xs text-muted-foreground">
-                      By: {ownerById.get(booking.user_id)?.full_name || ownerById.get(booking.user_id)?.email || "—"}
-                    </p>
-                    {(booking.booking_members as any[])?.length > 0 && (
-                      <div className="flex flex-wrap gap-1 mt-1">
-                        <Users className="h-3 w-3 text-muted-foreground mt-0.5" />
-                        {(booking.booking_members as any[]).map((m: any) => (
-                          <Badge key={m.id} variant="secondary" className="text-xs">
-                            {m.email} ✓
-                          </Badge>
-                        ))}
+              <Card
+                key={booking.id}
+                ref={isH ? highlightRef : undefined}
+                className={isH ? "ring-2 ring-primary ring-offset-2" : ""}
+              >
+                <CardContent className="p-4">
+                  <div className="flex items-start justify-between">
+                    <div className="space-y-1">
+                      <div className="flex items-center gap-2">
+                        <Badge variant="outline" className="text-xs">#{index + 1}</Badge>
+                        <h3 className="font-semibold">{booking.title}</h3>
                       </div>
-                    )}
+                      <div className="flex flex-wrap gap-3 text-sm text-muted-foreground">
+                        <span className="flex items-center gap-1">
+                          <MapPin className="h-3 w-3" /> {(booking.rooms as any)?.name}
+                        </span>
+                        <span className="flex items-center gap-1">
+                          <CalendarDays className="h-3 w-3" /> {booking.date}
+                        </span>
+                        <span className="flex items-center gap-1">
+                          <Clock className="h-3 w-3" /> {booking.start_time.slice(0, 5)}–{booking.end_time.slice(0, 5)}
+                        </span>
+                      </div>
+                      <p className="text-xs text-muted-foreground">
+                        By: {ownerById.get(booking.user_id)?.full_name || ownerById.get(booking.user_id)?.email || "—"}
+                      </p>
+                      {(booking.booking_members as any[])?.length > 0 && (
+                        <div className="flex flex-wrap gap-1 mt-1">
+                          <Users className="h-3 w-3 text-muted-foreground mt-0.5" />
+                          {(booking.booking_members as any[]).map((m: any) => (
+                            <Badge key={m.id} variant="secondary" className="text-xs">
+                              {m.email} ✓
+                            </Badge>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                    <div className="flex gap-2">
+                      <Button size="sm" onClick={() => approveBooking.mutate(booking.id)} className="gap-1">
+                        <Check className="h-3 w-3" /> Approve
+                      </Button>
+                      <Button size="sm" variant="outline" onClick={() => setEditingBooking(booking)} className="gap-1">
+                        <Pencil className="h-3 w-3" /> Edit
+                      </Button>
+                      <Button size="sm" variant="destructive" onClick={() => openRejectDialog(booking)} className="gap-1">
+                        <X className="h-3 w-3" /> Reject
+                      </Button>
+                    </div>
                   </div>
-                  <div className="flex gap-2">
-                    <Button
-                      size="sm"
-                      onClick={() => approveBooking.mutate(booking.id)}
-                      className="gap-1"
-                    >
-                      <Check className="h-3 w-3" /> Approve
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => setEditingBooking(booking)}
-                      className="gap-1"
-                    >
-                      <Pencil className="h-3 w-3" /> Edit
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="destructive"
-                      onClick={() => openRejectDialog(booking)}
-                      className="gap-1"
-                    >
-                      <X className="h-3 w-3" /> Reject
-                    </Button>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
+                </CardContent>
+              </Card>
             );
           })}
+
+          {expiredPending.length > 0 && (
+            <div className="pt-4 space-y-2">
+              <div className="flex items-center justify-between border-t pt-3">
+                <h4 className="text-sm font-medium text-muted-foreground">
+                  Expired — start time has already passed ({expiredPending.length})
+                </h4>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  className="text-destructive gap-1"
+                  onClick={() => {
+                    if (confirm(`Reject all ${expiredPending.length} expired pending booking(s)?`)) {
+                      expiredPending.forEach((b) =>
+                        rejectBooking.mutate({ id: b.id, reason: "Booking start time passed before approval." })
+                      );
+                    }
+                  }}
+                >
+                  <X className="h-3 w-3" /> Reject all expired
+                </Button>
+              </div>
+              {expiredPending.map((booking) => (
+                <Card key={booking.id} className="opacity-60">
+                  <CardContent className="p-3">
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="min-w-0 space-y-1">
+                        <div className="flex items-center gap-2">
+                          <Badge variant="secondary" className="text-xs">Expired</Badge>
+                          <h3 className="font-medium truncate">{booking.title}</h3>
+                        </div>
+                        <p className="text-xs text-muted-foreground">
+                          {(booking.rooms as any)?.name} • {booking.date} •{" "}
+                          {booking.start_time.slice(0, 5)}–{booking.end_time.slice(0, 5)} • by{" "}
+                          {ownerById.get(booking.user_id)?.full_name ||
+                            ownerById.get(booking.user_id)?.email ||
+                            "—"}
+                        </p>
+                      </div>
+                      <Button
+                        size="sm"
+                        variant="destructive"
+                        onClick={() => openRejectDialog(booking)}
+                        className="gap-1 shrink-0"
+                      >
+                        <X className="h-3 w-3" /> Reject
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          )}
         </TabsContent>
+
 
         <TabsContent value="all" className="space-y-3 mt-4">
           <div className="flex flex-wrap items-end gap-3 rounded-md border p-3">
