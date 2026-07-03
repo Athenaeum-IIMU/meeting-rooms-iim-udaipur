@@ -155,7 +155,7 @@ const Admin = () => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("booking_attempts")
-        .select("*, rooms(name)")
+        .select("*")
         .eq("success", false)
         .order("created_at", { ascending: false })
         .limit(100);
@@ -164,6 +164,11 @@ const Admin = () => {
     },
     enabled: isAdmin,
   });
+
+  const roomNameById = useMemo(
+    () => new Map((rooms || []).map((room: any) => [room.id, room.name])),
+    [rooms]
+  );
 
 
 
@@ -596,7 +601,7 @@ const Admin = () => {
                     <Badge variant="destructive" className="shrink-0 text-xs">failed</Badge>
                   </div>
                   <p className="text-xs text-muted-foreground">
-                    {a.rooms?.name || "—"} • {a.date || "—"}
+                    {roomNameById.get(a.room_id) || "—"} • {a.date || "—"}
                     {a.start_time ? ` ${String(a.start_time).slice(0,5)}–${String(a.end_time).slice(0,5)}` : ""}
                     {" • "}
                     {formatDistanceToNow(new Date(a.created_at), { addSuffix: true })}
