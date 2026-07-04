@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { CalendarDays, ClipboardList, Shield, LogOut, Menu, X } from "lucide-react";
 import { useState } from "react";
 import NotificationBell from "@/components/NotificationBell";
+import athenaeumLogo from "@/assets/athenaeum-logo.png.asset.json";
 
 const AppLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { profile, isAdmin, signOut } = useAuth();
