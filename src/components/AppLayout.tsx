@@ -82,10 +82,8 @@ const AppLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
         )}
       </header>
 
-      <main className="container mx-auto px-4 py-6">{children}</main>
-
       {location.pathname !== "/admin" && (
-        <div className="mt-auto flex items-center justify-center gap-2 py-3 text-[10px] text-muted-foreground/60">
+        <div className="flex items-center justify-center gap-2 border-b py-2 text-[10px] text-muted-foreground/60">
           <img
             src={athenaeumLogo.url}
             alt="Athenaeum Logo"
@@ -94,6 +92,8 @@ const AppLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
           <span>Developed by Athenaeum — Library Committee, IIMU</span>
         </div>
       )}
+
+      <main className="container mx-auto px-4 py-6">{children}</main>
     </div>
   );
 };
