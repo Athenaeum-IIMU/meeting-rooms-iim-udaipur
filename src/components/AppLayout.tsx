@@ -20,7 +20,7 @@ const AppLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     <div className="min-h-screen bg-background">
       <header className="sticky top-0 z-50 border-b bg-card/80 backdrop-blur-sm">
         <div className="container mx-auto flex h-16 items-center justify-between px-4">
-          <div className="flex items-center gap-3">
+          <Link to="/" className="flex items-center gap-3">
             <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary">
               <CalendarDays className="h-5 w-5 text-primary-foreground" />
             </div>
@@ -28,7 +28,7 @@ const AppLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
               <h1 className="text-lg font-bold leading-none">IIM Udaipur</h1>
               <p className="text-xs text-muted-foreground">Room Scheduler</p>
             </div>
-          </div>
+          </Link>
 
           <nav className="hidden items-center gap-1 md:flex">
             {links.map((link) => (
