@@ -415,6 +415,7 @@ export type Database = {
         Args: { p_accept: boolean; p_member_id: string }
         Returns: undefined
       }
+      auto_approve_imminent_bookings: { Args: never; Returns: undefined }
       check_blocked_slot: {
         Args: {
           p_date: string
