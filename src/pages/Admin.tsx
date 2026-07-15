@@ -514,6 +514,11 @@ const Admin = () => {
                     • {slot.date} • {slot.start_time.slice(0, 5)}–{slot.end_time.slice(0, 5)}
                   </span>
                   {slot.reason && <div className="text-xs text-muted-foreground truncate">{slot.reason}</div>}
+                  {slot.created_at && (
+                    <div className="text-[11px] text-muted-foreground/80 mt-0.5">
+                      Blocked on {new Date(slot.created_at).toLocaleString()}
+                    </div>
+                  )}
                 </div>
                 <div className="flex shrink-0 gap-1">
                   <Button
