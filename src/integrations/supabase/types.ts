@@ -180,6 +180,7 @@ export type Database = {
           date: string
           end_time: string
           id: string
+          pending_admin_since: string | null
           rejection_reason: string | null
           reminder_sent: boolean
           room_id: string
@@ -193,6 +194,7 @@ export type Database = {
           date: string
           end_time: string
           id?: string
+          pending_admin_since?: string | null
           rejection_reason?: string | null
           reminder_sent?: boolean
           room_id: string
@@ -206,6 +208,7 @@ export type Database = {
           date?: string
           end_time?: string
           id?: string
+          pending_admin_since?: string | null
           rejection_reason?: string | null
           reminder_sent?: boolean
           room_id?: string
