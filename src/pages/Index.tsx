@@ -378,13 +378,13 @@ const Index = () => {
                         items.push(
                           <div
                             key={`bl-${bs.id}`}
-                            className="mb-0.5 rounded border border-dashed border-destructive/40 bg-destructive/10 px-1 py-0.5 text-[10px] text-destructive"
+                            className="mb-0.5 rounded border-2 border-destructive bg-destructive/25 px-1 py-0.5 text-[10px] font-semibold text-destructive shadow-sm"
                             title={bs.reason ? `Blocked: ${bs.reason}` : "Blocked slot"}
                           >
-                            <span className="font-medium">🚫 {room.name}</span>{" "}
+                            <span className="font-bold">🚫 {room.name}</span>{" "}
                             {bs.start_time.slice(0, 5)}–{bs.end_time.slice(0, 5)}
                             {bs.reason && (
-                              <div className="opacity-80 truncate">{bs.reason}</div>
+                              <div className="font-normal opacity-90 truncate">{bs.reason}</div>
                             )}
                           </div>,
                         );
