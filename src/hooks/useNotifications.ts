@@ -2,8 +2,8 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 
-// Poll every 3 minutes instead of using realtime (Cloud usage optimization).
-const NOTIFICATIONS_POLL_INTERVAL = 3 * 60 * 1000;
+// Poll every 10 minutes; refetch on focus covers the interactive case.
+const NOTIFICATIONS_POLL_INTERVAL = 10 * 60 * 1000;
 
 export const useNotifications = () => {
   const { user } = useAuth();
