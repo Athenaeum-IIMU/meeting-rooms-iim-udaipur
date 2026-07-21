@@ -31,7 +31,13 @@ function getWeekDates(baseDate: Date): Date[] {
 }
 
 function formatDate(d: Date): string {
-  return d.toISOString().split("T")[0];
+  // Use LOCAL date components so IST users see IST dates.
+  // Using toISOString() would convert to UTC and shift the date back
+  // for anyone browsing between 00:00 and 05:29 IST.
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
 }
 
 const DAY_NAMES = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
@@ -315,13 +321,16 @@ const Index = () => {
         <span className="flex items-center gap-1"><span className="h-3 w-3 rounded border border-yellow-500 bg-yellow-500/20" /> Pending Admin</span>
         <span className="flex items-center gap-1"><span className="h-3 w-3 rounded border border-orange-400 bg-orange-400/20" /> Pending Members</span>
         <span className="flex items-center gap-1"><span className="h-3 w-3 rounded border border-red-500 bg-red-500/20" /> Rejected</span>
-        <span className="flex items-center gap-1"><span className="h-3 w-3 rounded border border-dashed border-destructive/40 bg-destructive/10" /> Blocked</span>
+        <span className="flex items-center gap-1"><span className="h-3 w-3 rounded border-2 border-destructive bg-destructive/25" /> Blocked</span>
       </div>
 
       <div className="overflow-auto rounded-lg border bg-card">
         <div className="min-w-[800px]">
-          {/* Header */}
-          <div className="grid border-b bg-muted/50" style={{ gridTemplateColumns: `80px repeat(${weekDates.length}, 1fr)` }}>
+          {/* Header - sticky so it stays visible while scrolling */}
+          <div
+            className="sticky top-0 z-20 grid border-b bg-muted/95 backdrop-blur supports-[backdrop-filter]:bg-muted/80 shadow-sm"
+            style={{ gridTemplateColumns: `80px repeat(${weekDates.length}, 1fr)` }}
+          >
             <div className="p-2 text-xs font-medium text-muted-foreground">Time</div>
             {weekDates.map((d, i) => (
               <div
@@ -369,13 +378,13 @@ const Index = () => {
                         items.push(
                           <div
                             key={`bl-${bs.id}`}
-                            className="mb-0.5 rounded border border-dashed border-destructive/40 bg-destructive/10 px-1 py-0.5 text-[10px] text-destructive"
+                            className="mb-0.5 rounded border-2 border-destructive bg-destructive/25 px-1 py-0.5 text-[10px] font-semibold text-destructive shadow-sm"
                             title={bs.reason ? `Blocked: ${bs.reason}` : "Blocked slot"}
                           >
-                            <span className="font-medium">🚫 {room.name}</span>{" "}
+                            <span className="font-bold">🚫 {room.name}</span>{" "}
                             {bs.start_time.slice(0, 5)}–{bs.end_time.slice(0, 5)}
                             {bs.reason && (
-                              <div className="opacity-80 truncate">{bs.reason}</div>
+                              <div className="font-normal opacity-90 truncate">{bs.reason}</div>
                             )}
                           </div>,
                         );
