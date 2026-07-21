@@ -326,8 +326,11 @@ const Index = () => {
 
       <div className="overflow-auto rounded-lg border bg-card">
         <div className="min-w-[800px]">
-          {/* Header */}
-          <div className="grid border-b bg-muted/50" style={{ gridTemplateColumns: `80px repeat(${weekDates.length}, 1fr)` }}>
+          {/* Header - sticky so it stays visible while scrolling */}
+          <div
+            className="sticky top-0 z-20 grid border-b bg-muted/95 backdrop-blur supports-[backdrop-filter]:bg-muted/80 shadow-sm"
+            style={{ gridTemplateColumns: `80px repeat(${weekDates.length}, 1fr)` }}
+          >
             <div className="p-2 text-xs font-medium text-muted-foreground">Time</div>
             {weekDates.map((d, i) => (
               <div
