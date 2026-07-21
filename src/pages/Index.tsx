@@ -31,7 +31,13 @@ function getWeekDates(baseDate: Date): Date[] {
 }
 
 function formatDate(d: Date): string {
-  return d.toISOString().split("T")[0];
+  // Use LOCAL date components so IST users see IST dates.
+  // Using toISOString() would convert to UTC and shift the date back
+  // for anyone browsing between 00:00 and 05:29 IST.
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
 }
 
 const DAY_NAMES = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
