@@ -3,9 +3,10 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useEffect } from "react";
 
-// Polling interval: 3 minutes. We rely on polling (not realtime) to reduce
-// Cloud usage. Manual mutations also invalidate queries for instant feedback.
-const POLL_INTERVAL = 3 * 60 * 1000;
+// Polling interval: 10 minutes. Realtime subscriptions (below) push instant
+// updates, so polling is only a safety net — a longer interval slashes idle
+// DB reads and Cloud usage without affecting UX.
+const POLL_INTERVAL = 10 * 60 * 1000;
 
 export const useBookings = (date?: string) => {
   return useQuery({
