@@ -321,7 +321,7 @@ const Index = () => {
         <span className="flex items-center gap-1"><span className="h-3 w-3 rounded border border-yellow-500 bg-yellow-500/20" /> Pending Admin</span>
         <span className="flex items-center gap-1"><span className="h-3 w-3 rounded border border-orange-400 bg-orange-400/20" /> Pending Members</span>
         <span className="flex items-center gap-1"><span className="h-3 w-3 rounded border border-red-500 bg-red-500/20" /> Rejected</span>
-        <span className="flex items-center gap-1"><span className="h-3 w-3 rounded border border-dashed border-destructive/40 bg-destructive/10" /> Blocked</span>
+        <span className="flex items-center gap-1"><span className="h-3 w-3 rounded border-2 border-destructive bg-destructive/25" /> Blocked</span>
       </div>
 
       <div className="overflow-auto rounded-lg border bg-card">
