@@ -73,7 +73,7 @@ export const useBlockedSlots = (startDate: string, endDate: string) => {
 /**
  * Lightweight realtime: subscribe to bookings + blocked_slots changes and
  * invalidate the calendar caches so edits show up immediately. Polling
- * remains as a safety net (every 3 minutes).
+ * remains as a safety net (every 10 minutes).
  */
 export const useBookingsRealtime = () => {
   const queryClient = useQueryClient();
