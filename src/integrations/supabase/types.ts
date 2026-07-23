@@ -535,6 +535,7 @@ export type Database = {
         Args: { _target: string; _viewer: string }
         Returns: boolean
       }
+      trim_log_tables: { Args: never; Returns: undefined }
     }
     Enums: {
       app_role: "admin" | "user"
