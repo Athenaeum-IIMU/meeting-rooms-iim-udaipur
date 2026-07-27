@@ -62,8 +62,8 @@ const EditBookingModal = ({ open, onClose, booking }: EditBookingModalProps) => 
       if (dur <= 0) {
         throw new Error("End time must be after start time.");
       }
-      if (dur < 30) {
-        throw new Error("A booking must be at least 30 minutes long.");
+      if (dur < 30 && endTime !== "23:59") {
+        throw new Error("A booking must be at least 30 minutes long (except end-of-day slots ending at 23:59).");
       }
       if (dur > 120) {
         throw new Error("A single booking can be at most 2 hours long.");
