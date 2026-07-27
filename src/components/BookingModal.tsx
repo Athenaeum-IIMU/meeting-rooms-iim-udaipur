@@ -115,8 +115,9 @@ const BookingModal = ({ open, onClose, defaultDate, defaultTime, defaultEndTime,
       return;
     }
     const durMin = toMinLocal(endTime) - toMinLocal(startTime);
-    if (durMin < 30) {
-      await fail("A booking must be at least 30 minutes long.");
+    // End-of-day exception: allow <30 min when it ends exactly at 23:59
+    if (durMin < 30 && endTime !== "23:59") {
+      await fail("A booking must be at least 30 minutes long (except end-of-day slots ending at 23:59).");
       return;
     }
     if (durMin > 120) {
