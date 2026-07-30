@@ -27,7 +27,7 @@ const BookingModal = ({ open, onClose, defaultDate, defaultTime, defaultEndTime,
 
   const today = new Date();
   const maxDate = new Date(today);
-  maxDate.setDate(maxDate.getDate() + 2);
+  maxDate.setDate(maxDate.getDate() + 1);
 
   const [title, setTitle] = useState("");
   const [roomId, setRoomId] = useState(defaultRoomId || "");
@@ -237,7 +237,7 @@ const BookingModal = ({ open, onClose, defaultDate, defaultTime, defaultEndTime,
               max={maxDate.toISOString().split("T")[0]}
               required
             />
-            <p className="text-xs text-muted-foreground">Max 2 days in advance</p>
+            <p className="text-xs text-muted-foreground">Max 1 day in advance (today or tomorrow)</p>
           </div>
 
           <div className="grid grid-cols-2 gap-3">
