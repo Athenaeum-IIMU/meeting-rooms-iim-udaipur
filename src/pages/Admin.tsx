@@ -209,6 +209,41 @@ const Admin = () => {
     },
   });
 
+  const cancelBooking = useMutation({
+    mutationFn: async (bookingId: string) => {
+      const { error } = await supabase
+        .from("bookings")
+        .update({ status: "cancelled" })
+        .eq("id", bookingId);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin-pending"] });
+      queryClient.invalidateQueries({ queryKey: ["admin-all-bookings"] });
+      queryClient.invalidateQueries({ queryKey: ["bookings"] });
+      toast({ title: "Booking cancelled" });
+    },
+    onError: (e: Error) =>
+      toast({ title: "Cancel failed", description: e.message, variant: "destructive" }),
+  });
+
+  const deleteBooking = useMutation({
+    mutationFn: async (bookingId: string) => {
+      await supabase.from("booking_members").delete().eq("booking_id", bookingId);
+      const { error } = await supabase.from("bookings").delete().eq("id", bookingId);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin-pending"] });
+      queryClient.invalidateQueries({ queryKey: ["admin-all-bookings"] });
+      queryClient.invalidateQueries({ queryKey: ["bookings"] });
+      toast({ title: "Booking deleted" });
+    },
+    onError: (e: Error) =>
+      toast({ title: "Delete failed", description: e.message, variant: "destructive" }),
+  });
+
+
   const openRejectDialog = (booking: any) => {
     const room = (booking.rooms as any)?.name || "the room";
     const time = `${booking.start_time.slice(0, 5)}–${booking.end_time.slice(0, 5)}`;
