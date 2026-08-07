@@ -528,6 +528,32 @@ const Admin = () => {
                         <Pencil className="h-3 w-3" /> Edit
                       </Button>
                     )}
+                    {booking.status !== "cancelled" && (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="h-7 gap-1"
+                        disabled={cancelBooking.isPending}
+                        onClick={() => {
+                          if (confirm(`Cancel "${booking.title}"? Members will be notified.`))
+                            cancelBooking.mutate(booking.id);
+                        }}
+                      >
+                        <X className="h-3 w-3" /> Cancel
+                      </Button>
+                    )}
+                    <Button
+                      size="sm"
+                      variant="destructive"
+                      className="h-7 gap-1"
+                      disabled={deleteBooking.isPending}
+                      onClick={() => {
+                        if (confirm(`Permanently delete "${booking.title}"? This cannot be undone.`))
+                          deleteBooking.mutate(booking.id);
+                      }}
+                    >
+                      <Trash2 className="h-3 w-3" /> Delete
+                    </Button>
                   </div>
                 </CardContent>
               </Card>
