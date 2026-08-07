@@ -213,7 +213,7 @@ const Admin = () => {
     mutationFn: async (bookingId: string) => {
       const { error } = await supabase
         .from("bookings")
-        .update({ status: "cancelled" })
+        .update({ status: "cancelled", rejection_reason: "Cancelled by admin" })
         .eq("id", bookingId);
       if (error) throw error;
     },
@@ -221,27 +221,32 @@ const Admin = () => {
       queryClient.invalidateQueries({ queryKey: ["admin-pending"] });
       queryClient.invalidateQueries({ queryKey: ["admin-all-bookings"] });
       queryClient.invalidateQueries({ queryKey: ["bookings"] });
-      toast({ title: "Booking cancelled" });
+      toast({ title: "Booking cancelled by admin" });
     },
     onError: (e: Error) =>
       toast({ title: "Cancel failed", description: e.message, variant: "destructive" }),
   });
 
+  // "Delete" is a soft-delete: the booking stays visible as cancelled by admin
+  // and the change is recorded in the audit log.
   const deleteBooking = useMutation({
     mutationFn: async (bookingId: string) => {
-      await supabase.from("booking_members").delete().eq("booking_id", bookingId);
-      const { error } = await supabase.from("bookings").delete().eq("id", bookingId);
+      const { error } = await supabase
+        .from("bookings")
+        .update({ status: "cancelled", rejection_reason: "Cancelled by admin" })
+        .eq("id", bookingId);
       if (error) throw error;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["admin-pending"] });
       queryClient.invalidateQueries({ queryKey: ["admin-all-bookings"] });
       queryClient.invalidateQueries({ queryKey: ["bookings"] });
-      toast({ title: "Booking deleted" });
+      toast({ title: "Booking cancelled by admin" });
     },
     onError: (e: Error) =>
-      toast({ title: "Delete failed", description: e.message, variant: "destructive" }),
+      toast({ title: "Cancel failed", description: e.message, variant: "destructive" }),
   });
+
 
 
   const openRejectDialog = (booking: any) => {
