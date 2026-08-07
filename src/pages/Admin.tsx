@@ -547,18 +547,25 @@ const Admin = () => {
                         <X className="h-3 w-3" /> Cancel
                       </Button>
                     )}
-                    <Button
-                      size="sm"
-                      variant="destructive"
-                      className="h-7 gap-1"
-                      disabled={deleteBooking.isPending}
-                      onClick={() => {
-                        if (confirm(`Permanently delete "${booking.title}"? This cannot be undone.`))
-                          deleteBooking.mutate(booking.id);
-                      }}
-                    >
-                      <Trash2 className="h-3 w-3" /> Delete
-                    </Button>
+                    {booking.status !== "cancelled" && (
+                      <Button
+                        size="sm"
+                        variant="destructive"
+                        className="h-7 gap-1"
+                        disabled={deleteBooking.isPending}
+                        onClick={() => {
+                          if (
+                            confirm(
+                              `Remove "${booking.title}"? It will be marked as cancelled by admin and logged.`
+                            )
+                          )
+                            deleteBooking.mutate(booking.id);
+                        }}
+                      >
+                        <Trash2 className="h-3 w-3" /> Remove
+                      </Button>
+                    )}
+
                   </div>
                 </CardContent>
               </Card>
