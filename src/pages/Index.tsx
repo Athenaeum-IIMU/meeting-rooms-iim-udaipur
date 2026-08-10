@@ -398,7 +398,7 @@ const Index = () => {
                           <div
                             key={b.id}
                             className={cn(
-                              "mb-0.5 rounded border px-1 py-0.5 text-[10px] leading-tight",
+                              "mb-0.5 max-w-full rounded border px-1 py-0.5 text-[10px] leading-tight",
                               b.user_id !== user?.id ? "cursor-pointer hover:opacity-80" : "cursor-default",
                               statusColors[b.status] || "",
                             )}
