@@ -378,13 +378,15 @@ const Index = () => {
                         items.push(
                           <div
                             key={`bl-${bs.id}`}
-                            className="mb-0.5 rounded border-2 border-destructive bg-destructive/25 px-1 py-0.5 text-[10px] font-semibold text-destructive shadow-sm"
+                            className="mb-0.5 max-w-full rounded border-2 border-destructive bg-destructive/25 px-1 py-0.5 text-[10px] font-semibold leading-tight text-destructive shadow-sm"
                             title={bs.reason ? `Blocked: ${bs.reason}` : "Blocked slot"}
                           >
-                            <span className="font-bold">🚫 {room.name}</span>{" "}
-                            {bs.start_time.slice(0, 5)}–{bs.end_time.slice(0, 5)}
+                            <div className="flex flex-wrap items-center gap-0.5">
+                              <span className="font-bold">🚫 {room.name}</span>
+                              <span>{bs.start_time.slice(0, 5)}–{bs.end_time.slice(0, 5)}</span>
+                            </div>
                             {bs.reason && (
-                              <div className="font-normal opacity-90 truncate">{bs.reason}</div>
+                              <div className="max-w-full font-normal break-words opacity-90">{bs.reason}</div>
                             )}
                           </div>,
                         );
