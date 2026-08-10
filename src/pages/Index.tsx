@@ -434,7 +434,7 @@ const Index = () => {
                         items.push(
                           <div
                             key={`gap-${s}`}
-                            className="mb-0.5 cursor-pointer rounded px-1 py-0.5 text-[10px] text-muted-foreground/40 hover:bg-primary/10 hover:text-primary"
+                            className="mb-0.5 max-w-full cursor-pointer rounded px-1 py-0.5 text-[10px] leading-tight text-muted-foreground/40 hover:bg-primary/10 hover:text-primary"
                             onClick={() => handleSlotClick(dateStr, room.id, s, e)}
                             title={isWhole ? `Book ${room.name}` : `Free ${fmtTime(s)}–${fmtTime(e)}`}
                           >
