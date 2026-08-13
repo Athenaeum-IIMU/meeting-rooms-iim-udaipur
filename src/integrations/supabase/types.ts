@@ -530,6 +530,10 @@ export type Database = {
         }
         Returns: undefined
       }
+      reevaluate_pending_admin: {
+        Args: { p_date: string; p_room_id: string }
+        Returns: undefined
+      }
       send_booking_reminders: { Args: never; Returns: undefined }
       shares_booking: {
         Args: { _target: string; _viewer: string }
