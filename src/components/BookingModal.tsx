@@ -312,7 +312,6 @@ const BookingModal = ({ open, onClose, defaultDate, defaultTime, defaultEndTime,
     <Dialog open={!!conflictReason}>
       <DialogContent
         className="sm:max-w-md border-destructive/40"
-        hideCloseButton
         onInteractOutside={(e) => e.preventDefault()}
         onEscapeKeyDown={(e) => e.preventDefault()}
       >
