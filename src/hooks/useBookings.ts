@@ -130,13 +130,7 @@ export const useCreateBooking = () => {
       queryClient.invalidateQueries({ queryKey: ["bookings"] });
       toast({ title: "Booking created!", description: "Waiting for member confirmations." });
     },
-    onError: (error: Error) => {
-      let description = error.message;
-      if (description.startsWith("NOT_REGISTERED:")) {
-        const emails = description.slice("NOT_REGISTERED:".length).split(",").filter(Boolean);
-        description = `These people haven't signed in yet, so they can't be invited:\n${emails.join("\n")}\nAsk them to log in once, then invite them again.`;
-      }
-      toast({ title: "Booking failed", description, variant: "destructive" });
-    },
+    // Errors are surfaced by the caller in a blocking dialog (see BookingModal),
+    // so no corner toast here.
   });
 };

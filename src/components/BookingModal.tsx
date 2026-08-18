@@ -100,8 +100,8 @@ const BookingModal = ({ open, onClose, defaultDate, defaultTime, defaultEndTime,
     // +1 for the booker themselves
     const totalMembers = members.length + 1;
     if (totalMembers < minMembers) {
-      await logAttempt(
-        `Not enough members: ${totalMembers}/${minMembers} required for ${selectedRoom?.name ?? "room"}`
+      await fail(
+        `Not enough members: ${totalMembers}/${minMembers} required for ${selectedRoom?.name ?? "this room"}. Add ${minMembers - totalMembers} more member(s) and try again.`
       );
       return;
     }
@@ -162,9 +162,15 @@ const BookingModal = ({ open, onClose, defaultDate, defaultTime, defaultEndTime,
       });
       onClose();
       resetForm();
-    } catch {
-      // create_booking_logged already records the failed attempt server-side
-      // and useCreateBooking shows the destructive toast. Nothing else to do.
+    } catch (err) {
+      // create_booking_logged already records the failed attempt server-side.
+      // Surface the reason in a blocking dialog the user must acknowledge.
+      let message = (err as Error)?.message || "Something went wrong. Please try again.";
+      if (message.startsWith("NOT_REGISTERED:")) {
+        const emails = message.slice("NOT_REGISTERED:".length).split(",").filter(Boolean);
+        message = `These people haven't signed in yet, so they can't be invited:\n\n${emails.join("\n")}\n\nAsk them to log in once, then invite them again.`;
+      }
+      setConflictReason(message);
     }
   };
 
@@ -303,17 +309,28 @@ const BookingModal = ({ open, onClose, defaultDate, defaultTime, defaultEndTime,
       </DialogContent>
     </Dialog>
 
-    <Dialog open={!!conflictReason} onOpenChange={(o) => !o && setConflictReason(null)}>
-      <DialogContent className="sm:max-w-sm">
+    <Dialog open={!!conflictReason}>
+      <DialogContent
+        className="sm:max-w-md border-destructive/40"
+        onInteractOutside={(e) => e.preventDefault()}
+        onEscapeKeyDown={(e) => e.preventDefault()}
+      >
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <AlertTriangle className="h-5 w-5 text-destructive" />
-            Can't book this slot
+          <DialogTitle className="flex items-center gap-2 text-destructive">
+            <AlertTriangle className="h-5 w-5" />
+            Booking failed
           </DialogTitle>
         </DialogHeader>
-        <p className="text-sm text-muted-foreground">{conflictReason}</p>
+        <div className="rounded-md border border-destructive/30 bg-destructive/5 p-3">
+          <p className="whitespace-pre-line break-words text-sm text-foreground">{conflictReason}</p>
+        </div>
+        <p className="text-xs text-muted-foreground">
+          Please fix the issue above before trying to book again.
+        </p>
         <DialogFooter>
-          <Button onClick={() => setConflictReason(null)}>Got it</Button>
+          <Button variant="destructive" onClick={() => setConflictReason(null)}>
+            Got it, let me fix it
+          </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
