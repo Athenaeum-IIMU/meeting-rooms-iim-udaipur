@@ -100,8 +100,8 @@ const BookingModal = ({ open, onClose, defaultDate, defaultTime, defaultEndTime,
     // +1 for the booker themselves
     const totalMembers = members.length + 1;
     if (totalMembers < minMembers) {
-      await logAttempt(
-        `Not enough members: ${totalMembers}/${minMembers} required for ${selectedRoom?.name ?? "room"}`
+      await fail(
+        `Not enough members: ${totalMembers}/${minMembers} required for ${selectedRoom?.name ?? "this room"}. Add ${minMembers - totalMembers} more member(s) and try again.`
       );
       return;
     }
