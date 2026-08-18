@@ -309,17 +309,29 @@ const BookingModal = ({ open, onClose, defaultDate, defaultTime, defaultEndTime,
       </DialogContent>
     </Dialog>
 
-    <Dialog open={!!conflictReason} onOpenChange={(o) => !o && setConflictReason(null)}>
-      <DialogContent className="sm:max-w-sm">
+    <Dialog open={!!conflictReason}>
+      <DialogContent
+        className="sm:max-w-md border-destructive/40"
+        hideCloseButton
+        onInteractOutside={(e) => e.preventDefault()}
+        onEscapeKeyDown={(e) => e.preventDefault()}
+      >
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <AlertTriangle className="h-5 w-5 text-destructive" />
-            Can't book this slot
+          <DialogTitle className="flex items-center gap-2 text-destructive">
+            <AlertTriangle className="h-5 w-5" />
+            Booking failed
           </DialogTitle>
         </DialogHeader>
-        <p className="text-sm text-muted-foreground">{conflictReason}</p>
+        <div className="rounded-md border border-destructive/30 bg-destructive/5 p-3">
+          <p className="whitespace-pre-line break-words text-sm text-foreground">{conflictReason}</p>
+        </div>
+        <p className="text-xs text-muted-foreground">
+          Please fix the issue above before trying to book again.
+        </p>
         <DialogFooter>
-          <Button onClick={() => setConflictReason(null)}>Got it</Button>
+          <Button variant="destructive" onClick={() => setConflictReason(null)}>
+            Got it, let me fix it
+          </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
