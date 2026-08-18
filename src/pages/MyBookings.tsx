@@ -13,6 +13,7 @@ import EditBookingModal from "@/components/EditBookingModal";
 import { useMyWaitlist, useRemoveWaitlist } from "@/hooks/useWaitlist";
 import { useBookingsRealtime } from "@/hooks/useBookings";
 import { Input } from "@/components/ui/input";
+import { formatCreatedAt } from "@/lib/datetime";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 
 const statusBadge: Record<string, { variant: "default" | "secondary" | "destructive" | "outline"; label: string }> = {
@@ -272,6 +273,9 @@ const MyBookings = () => {
                   <Users className="h-3 w-3" /> {totalPeople} {totalPeople === 1 ? "person" : "people"}
                 </span>
               </div>
+              <p className="text-xs text-muted-foreground">
+                Created: {formatCreatedAt(booking.created_at)}
+              </p>
               {booking.status === "rejected" && booking.rejection_reason && (
                 <p className="mt-1 rounded-md border border-destructive/30 bg-destructive/5 p-2 text-xs text-destructive">
                   <span className="font-semibold">Rejection reason:</span> {booking.rejection_reason}
@@ -335,6 +339,9 @@ const MyBookings = () => {
                     <p className="text-sm text-muted-foreground">
                       {room?.name} • {booking.date} • {booking.start_time.slice(0, 5)}–{booking.end_time.slice(0, 5)}
                     </p>
+                    <p className="text-xs text-muted-foreground">
+                      Created: {formatCreatedAt(booking.created_at)}
+                    </p>
                     <p className="text-sm text-destructive">
                       {declined.length > 0
                         ? `${declined.map((m: any) => m.email).join(", ")} declined.`
@@ -375,6 +382,9 @@ const MyBookings = () => {
                       </div>
                       <p className="text-sm text-muted-foreground">
                         {(invite.bookings as any)?.rooms?.name} • {(invite.bookings as any)?.date} • {(invite.bookings as any)?.start_time?.slice(0, 5)}–{(invite.bookings as any)?.end_time?.slice(0, 5)}
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        Created: {formatCreatedAt((invite.bookings as any)?.created_at)}
                       </p>
                       {(invite.bookings as any)?.rooms?.location && (
                         <p className="text-xs text-muted-foreground">Location: {(invite.bookings as any)?.rooms?.location}</p>

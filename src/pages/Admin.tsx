@@ -21,6 +21,7 @@ import AdminRoomsTab from "@/components/AdminRoomsTab";
 import AdminUsersTab from "@/components/AdminUsersTab";
 import { ScrollText, Building2, UserCog } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
+import { formatCreatedAt } from "@/lib/datetime";
 
 const Admin = () => {
   const { user, isAdmin } = useAuth();
@@ -367,6 +368,9 @@ const Admin = () => {
                       <p className="text-xs text-muted-foreground">
                         By: {ownerById.get(booking.user_id)?.full_name || ownerById.get(booking.user_id)?.email || "—"}
                       </p>
+                      <p className="text-xs text-muted-foreground">
+                        Created: {formatCreatedAt(booking.created_at)}
+                      </p>
                       {(booking.booking_members as any[])?.length > 0 && (
                         <div className="flex flex-wrap gap-1 mt-1">
                           <Users className="h-3 w-3 text-muted-foreground mt-0.5" />
@@ -431,6 +435,9 @@ const Admin = () => {
                           {ownerById.get(booking.user_id)?.full_name ||
                             ownerById.get(booking.user_id)?.email ||
                             "—"}
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          Created: {formatCreatedAt(booking.created_at)}
                         </p>
                       </div>
                       <Button
@@ -519,6 +526,9 @@ const Admin = () => {
                     </span>
                     <span className="text-xs text-muted-foreground ml-2">
                       by {ownerById.get(booking.user_id)?.full_name || ownerById.get(booking.user_id)?.email || "—"}
+                    </span>
+                    <span className="block text-xs text-muted-foreground">
+                      Created: {formatCreatedAt(booking.created_at)}
                     </span>
                   </div>
                   <div className="flex items-center gap-2">
