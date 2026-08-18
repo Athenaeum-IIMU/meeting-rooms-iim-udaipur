@@ -162,9 +162,15 @@ const BookingModal = ({ open, onClose, defaultDate, defaultTime, defaultEndTime,
       });
       onClose();
       resetForm();
-    } catch {
-      // create_booking_logged already records the failed attempt server-side
-      // and useCreateBooking shows the destructive toast. Nothing else to do.
+    } catch (err) {
+      // create_booking_logged already records the failed attempt server-side.
+      // Surface the reason in a blocking dialog the user must acknowledge.
+      let message = (err as Error)?.message || "Something went wrong. Please try again.";
+      if (message.startsWith("NOT_REGISTERED:")) {
+        const emails = message.slice("NOT_REGISTERED:".length).split(",").filter(Boolean);
+        message = `These people haven't signed in yet, so they can't be invited:\n\n${emails.join("\n")}\n\nAsk them to log in once, then invite them again.`;
+      }
+      setConflictReason(message);
     }
   };
 
