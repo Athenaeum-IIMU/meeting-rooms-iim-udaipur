@@ -460,6 +460,7 @@ const Index = () => {
           {HOURS.map((hour) => (
             <div
               key={hour}
+              data-hour={hour}
               className="grid border-b last:border-b-0"
               style={{ gridTemplateColumns: `80px repeat(${weekDates.length}, 1fr)` }}
             >
