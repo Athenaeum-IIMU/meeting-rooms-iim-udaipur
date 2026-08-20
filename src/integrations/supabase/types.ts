@@ -508,6 +508,7 @@ export type Database = {
         Returns: boolean
       }
       is_current_user_admin: { Args: never; Returns: boolean }
+      ist_today: { Args: never; Returns: string }
       log_booking_attempt: {
         Args: {
           p_date: string

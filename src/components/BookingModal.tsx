@@ -25,13 +25,18 @@ const BookingModal = ({ open, onClose, defaultDate, defaultTime, defaultEndTime,
   const { data: rooms } = useRooms();
   const createBooking = useCreateBooking();
 
-  const today = new Date();
-  const maxDate = new Date(today);
-  maxDate.setDate(maxDate.getDate() + 1);
+  // Dates are always evaluated in IST (Asia/Kolkata), never UTC or device time
+  const istDateStr = (offsetDays = 0) => {
+    const ist = new Date(Date.now() + 5.5 * 60 * 60 * 1000 + offsetDays * 86400000);
+    return ist.toISOString().split("T")[0];
+  };
+  const todayStr = istDateStr(0);
+  const maxDateStr = istDateStr(1);
 
   const [title, setTitle] = useState("");
   const [roomId, setRoomId] = useState(defaultRoomId || "");
-  const [date, setDate] = useState(defaultDate || today.toISOString().split("T")[0]);
+  const [date, setDate] = useState(defaultDate || todayStr);
+
   const [startTime, setStartTime] = useState(defaultTime || "09:00");
   const [endTime, setEndTime] = useState(defaultEndTime || (defaultTime ? addHour(defaultTime) : "10:00"));
   const [memberEmail, setMemberEmail] = useState("");
@@ -177,7 +182,7 @@ const BookingModal = ({ open, onClose, defaultDate, defaultTime, defaultEndTime,
   const resetForm = () => {
     setTitle("");
     setRoomId("");
-    setDate(today.toISOString().split("T")[0]);
+    setDate(todayStr);
     setStartTime("09:00");
     setEndTime("10:00");
     setMembers([]);
@@ -239,8 +244,8 @@ const BookingModal = ({ open, onClose, defaultDate, defaultTime, defaultEndTime,
               type="date"
               value={date}
               onChange={(e) => setDate(e.target.value)}
-              min={today.toISOString().split("T")[0]}
-              max={maxDate.toISOString().split("T")[0]}
+              min={todayStr}
+              max={maxDateStr}
               required
             />
             <p className="text-xs text-muted-foreground">Max 1 day in advance (today or tomorrow)</p>
