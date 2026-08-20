@@ -3,7 +3,7 @@ import { useRooms } from "@/hooks/useRooms";
 import { useWeekBookings, useBlockedSlots, useBookingsRealtime } from "@/hooks/useBookings";
 import BookingModal from "@/components/BookingModal";
 import { Button } from "@/components/ui/button";
-import { ChevronLeft, ChevronRight, Plus, CircleCheck, CircleX } from "lucide-react";
+import { ChevronLeft, ChevronRight, Plus, CircleCheck, CircleX, RefreshCw } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
