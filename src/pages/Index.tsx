@@ -1,9 +1,9 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useRooms } from "@/hooks/useRooms";
 import { useWeekBookings, useBlockedSlots, useBookingsRealtime } from "@/hooks/useBookings";
 import BookingModal from "@/components/BookingModal";
 import { Button } from "@/components/ui/button";
-import { ChevronLeft, ChevronRight, Plus, CircleCheck } from "lucide-react";
+import { ChevronLeft, ChevronRight, Plus, CircleCheck, CircleX } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -55,6 +55,9 @@ const toMinutes = (time: string) => {
   const [hours, minutes] = time.split(":").map(Number);
   return hours * 60 + minutes;
 };
+
+const minToLabel = (mins: number) =>
+  `${String(Math.floor(mins / 60)).padStart(2, "0")}:${String(mins % 60).padStart(2, "0")}`;
 
 const overlapsHour = (startTime: string, endTime: string, hour: number) => {
   const slotStart = hour * 60;
@@ -128,31 +131,67 @@ const Index = () => {
 
   const filteredRooms = selectedRoom ? rooms?.filter((r) => r.id === selectedRoom) : rooms;
 
-  // Compute "rooms free right now" for today
-  const now = new Date();
+  // Live "available right now" status, refreshed every 30s
+  const [nowTick, setNowTick] = useState(() => new Date());
+  useEffect(() => {
+    const t = setInterval(() => setNowTick(new Date()), 30_000);
+    return () => clearInterval(t);
+  }, []);
+  const now = nowTick;
   const todayStr = formatDate(now);
-  const currentHour = now.getHours();
-  const roomsFreeNow = useMemo(() => {
-    if (!rooms) return { free: 0, total: 0, freeNames: [] as string[] };
-    const freeNames: string[] = [];
-    for (const r of rooms) {
-      const occupied = bookings?.some(
-        (b) =>
+  const nowMin = now.getHours() * 60 + now.getMinutes();
+
+  const roomStatuses = useMemo(() => {
+    if (!rooms) return [] as Array<{ id: string; name: string; free: boolean; until: string | null; label: string }>;
+    return rooms.map((r) => {
+      const busySpans: Array<[number, number, string]> = [];
+      bookings?.forEach((b) => {
+        if (
           b.room_id === r.id &&
           b.date === todayStr &&
-          ["approved", "pending_admin", "pending_members"].includes(b.status) &&
-          overlapsHour(b.start_time, b.end_time, currentHour)
-      );
-      const blocked = blockedSlots?.some(
-        (bs) =>
-          bs.room_id === r.id &&
-          bs.date === todayStr &&
-          overlapsHour(bs.start_time, bs.end_time, currentHour)
-      );
-      if (!occupied && !blocked) freeNames.push(r.name);
-    }
-    return { free: freeNames.length, total: rooms.length, freeNames };
-  }, [rooms, bookings, blockedSlots, todayStr, currentHour]);
+          ["approved", "pending_admin", "pending_members"].includes(b.status)
+        ) {
+          busySpans.push([toMinutes(b.start_time), toMinutes(b.end_time), "In use"]);
+        }
+      });
+      blockedSlots?.forEach((bs: any) => {
+        if (bs.room_id === r.id && bs.date === todayStr) {
+          busySpans.push([toMinutes(bs.start_time), toMinutes(bs.end_time), "Blocked"]);
+        }
+      });
+      const current = busySpans.find(([s, e]) => s <= nowMin && e > nowMin);
+      if (current) {
+        return {
+          id: r.id,
+          name: r.name,
+          free: false,
+          until: minToLabel(current[1]),
+          label: current[2],
+        };
+      }
+      const nextStart = busySpans
+        .map(([s]) => s)
+        .filter((s) => s > nowMin)
+        .sort((a, b) => a - b)[0];
+      return {
+        id: r.id,
+        name: r.name,
+        free: true,
+        until: nextStart !== undefined ? minToLabel(nextStart) : null,
+        label: "Available",
+      };
+    });
+  }, [rooms, bookings, blockedSlots, todayStr, nowMin]);
+
+  const roomsFreeNow = useMemo(
+    () => ({
+      free: roomStatuses.filter((r) => r.free).length,
+      total: roomStatuses.length,
+      freeNames: roomStatuses.filter((r) => r.free).map((r) => r.name),
+    }),
+    [roomStatuses]
+  );
+
 
   const prevWeek = () => {
     const d = new Date(baseDate);
@@ -249,23 +288,70 @@ const Index = () => {
   return (
     <div className="space-y-4">
       {rooms && rooms.length > 0 && (
-        <div className="flex flex-wrap items-center gap-2 rounded-lg border bg-card p-3 text-sm">
-          <CircleCheck
-            className={cn(
-              "h-4 w-4",
-              roomsFreeNow.free > 0 ? "text-green-600" : "text-muted-foreground"
-            )}
-          />
-          <span className="font-medium">
-            {roomsFreeNow.free} of {roomsFreeNow.total} rooms free right now
-          </span>
-          {roomsFreeNow.freeNames.length > 0 && (
-            <span className="text-muted-foreground">
-              · {roomsFreeNow.freeNames.join(", ")}
-            </span>
+        <div
+          className={cn(
+            "sticky top-2 z-20 rounded-xl border-2 p-4 shadow-md backdrop-blur",
+            roomsFreeNow.free > 0
+              ? "border-green-500/60 bg-green-500/10"
+              : "border-destructive/50 bg-destructive/10"
           )}
+        >
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="relative flex h-3 w-3">
+              {roomsFreeNow.free > 0 && (
+                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-green-500 opacity-75" />
+              )}
+              <span
+                className={cn(
+                  "relative inline-flex h-3 w-3 rounded-full",
+                  roomsFreeNow.free > 0 ? "bg-green-600" : "bg-destructive"
+                )}
+              />
+            </span>
+            <h2 className="text-base font-bold sm:text-lg">
+              {roomsFreeNow.free > 0
+                ? `${roomsFreeNow.free} of ${roomsFreeNow.total} rooms available right now`
+                : "All rooms are busy right now"}
+            </h2>
+            <span className="ml-auto text-xs text-muted-foreground">
+              as of {minToLabel(nowMin)} IST
+            </span>
+          </div>
+
+          <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-4">
+            {roomStatuses.map((r) => (
+              <button
+                key={r.id}
+                type="button"
+                onClick={() => setSelectedRoom(r.id)}
+                className={cn(
+                  "rounded-lg border-2 p-2 text-left transition hover:brightness-95",
+                  r.free
+                    ? "border-green-500/70 bg-green-500/15"
+                    : "border-destructive/50 bg-destructive/10"
+                )}
+              >
+                <div className="flex items-center gap-1.5">
+                  {r.free ? (
+                    <CircleCheck className="h-4 w-4 shrink-0 text-green-700" />
+                  ) : (
+                    <CircleX className="h-4 w-4 shrink-0 text-destructive" />
+                  )}
+                  <span className="truncate text-sm font-semibold">{r.name}</span>
+                </div>
+                <p className="mt-0.5 text-[11px] leading-tight text-muted-foreground">
+                  {r.free
+                    ? r.until
+                      ? `Free until ${r.until}`
+                      : "Free for the rest of the day"
+                    : `${r.label} till ${r.until}`}
+                </p>
+              </button>
+            ))}
+          </div>
         </div>
       )}
+
 
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-2">
