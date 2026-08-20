@@ -3,7 +3,7 @@ import { useRooms } from "@/hooks/useRooms";
 import { useWeekBookings, useBlockedSlots, useBookingsRealtime } from "@/hooks/useBookings";
 import BookingModal from "@/components/BookingModal";
 import { Button } from "@/components/ui/button";
-import { ChevronLeft, ChevronRight, Plus, CircleCheck, CircleX } from "lucide-react";
+import { ChevronLeft, ChevronRight, Plus, CircleCheck, CircleX, RefreshCw } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -134,10 +134,23 @@ const Index = () => {
   // Live "available right now" status, refreshed every 30 minutes to keep
   // Cloud compute usage low. Realtime still pushes booking changes instantly.
   const [nowTick, setNowTick] = useState(() => new Date());
+  const [lastRefreshedAt, setLastRefreshedAt] = useState(() => new Date());
   useEffect(() => {
-    const t = setInterval(() => setNowTick(new Date()), 30 * 60 * 1000);
+    const t = setInterval(() => {
+      const now = new Date();
+      setNowTick(now);
+      setLastRefreshedAt(now);
+    }, 30 * 60 * 1000);
     return () => clearInterval(t);
   }, []);
+  const refreshStatus = () => {
+    const now = new Date();
+    setNowTick(now);
+    setLastRefreshedAt(now);
+    queryClient.invalidateQueries({ queryKey: ["bookings"] });
+    queryClient.invalidateQueries({ queryKey: ["blockedSlots"] });
+    queryClient.invalidateQueries({ queryKey: ["rooms"] });
+  };
   const now = nowTick;
   const todayStr = formatDate(now);
   const nowMin = now.getHours() * 60 + now.getMinutes();
@@ -337,9 +350,19 @@ const Index = () => {
                 ? `${roomsFreeNow.free} of ${roomsFreeNow.total} rooms available right now`
                 : "All rooms are busy right now"}
             </h2>
-            <span className="ml-auto text-xs text-muted-foreground">
-              as of {minToLabel(nowMin)} IST
-            </span>
+            <div className="ml-auto flex items-center gap-2">
+              <span className="text-xs text-muted-foreground">
+                as of {lastRefreshedAt.toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit", hour12: false })} IST
+              </span>
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-7 gap-1 text-xs"
+                onClick={refreshStatus}
+              >
+                <RefreshCw className="h-3.5 w-3.5" /> Refresh now
+              </Button>
+            </div>
           </div>
 
           <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-4">
