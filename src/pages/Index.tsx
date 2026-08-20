@@ -139,7 +139,6 @@ const Index = () => {
   }, []);
   const now = nowTick;
   const todayStr = formatDate(now);
-  const currentHour = now.getHours();
   const nowMin = now.getHours() * 60 + now.getMinutes();
 
   const roomStatuses = useMemo(() => {
