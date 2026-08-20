@@ -134,10 +134,23 @@ const Index = () => {
   // Live "available right now" status, refreshed every 30 minutes to keep
   // Cloud compute usage low. Realtime still pushes booking changes instantly.
   const [nowTick, setNowTick] = useState(() => new Date());
+  const [lastRefreshedAt, setLastRefreshedAt] = useState(() => new Date());
   useEffect(() => {
-    const t = setInterval(() => setNowTick(new Date()), 30 * 60 * 1000);
+    const t = setInterval(() => {
+      const now = new Date();
+      setNowTick(now);
+      setLastRefreshedAt(now);
+    }, 30 * 60 * 1000);
     return () => clearInterval(t);
   }, []);
+  const refreshStatus = () => {
+    const now = new Date();
+    setNowTick(now);
+    setLastRefreshedAt(now);
+    queryClient.invalidateQueries({ queryKey: ["bookings"] });
+    queryClient.invalidateQueries({ queryKey: ["blockedSlots"] });
+    queryClient.invalidateQueries({ queryKey: ["rooms"] });
+  };
   const now = nowTick;
   const todayStr = formatDate(now);
   const nowMin = now.getHours() * 60 + now.getMinutes();
