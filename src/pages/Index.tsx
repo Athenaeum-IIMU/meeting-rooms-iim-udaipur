@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, useRef } from "react";
 import { useRooms } from "@/hooks/useRooms";
 import { useWeekBookings, useBlockedSlots, useBookingsRealtime } from "@/hooks/useBookings";
 import BookingModal from "@/components/BookingModal";
@@ -141,6 +141,29 @@ const Index = () => {
   const now = nowTick;
   const todayStr = formatDate(now);
   const nowMin = now.getHours() * 60 + now.getMinutes();
+
+  const calendarRef = useRef<HTMLDivElement>(null);
+
+  // Auto-scroll the calendar so the current hour is visible when viewing
+  // this week. Past hours end up above the viewport, making it easy to book now.
+  useEffect(() => {
+    if (!calendarRef.current) return;
+    const isThisWeek = weekDates.some((d) => formatDate(d) === todayStr);
+    if (!isThisWeek) {
+      calendarRef.current.scrollTo({ top: 0, behavior: "auto" });
+      return;
+    }
+    const currentHour = now.getHours();
+    const targetRow = calendarRef.current.querySelector(`[data-hour="${currentHour}"]`);
+    if (targetRow) {
+      const rowTop = (targetRow as HTMLElement).offsetTop;
+      const headerHeight = 48;
+      calendarRef.current.scrollTo({
+        top: Math.max(0, rowTop - headerHeight),
+        behavior: "smooth",
+      });
+    }
+  }, [startDate, endDate]);
 
   const roomStatuses = useMemo(() => {
     if (!rooms) return [] as Array<{ id: string; name: string; free: boolean; until: string | null; label: string }>;
@@ -411,7 +434,10 @@ const Index = () => {
         <span className="flex items-center gap-1"><span className="h-3 w-3 rounded border-2 border-destructive bg-destructive/25" /> Blocked</span>
       </div>
 
-      <div className="overflow-auto rounded-lg border bg-card">
+      <div
+        ref={calendarRef}
+        className="overflow-auto rounded-lg border bg-card max-h-[60vh] md:max-h-[65vh]"
+      >
         <div className="min-w-[800px]">
           {/* Header - sticky so it stays visible while scrolling */}
           <div
@@ -437,6 +463,7 @@ const Index = () => {
           {HOURS.map((hour) => (
             <div
               key={hour}
+              data-hour={hour}
               className="grid border-b last:border-b-0"
               style={{ gridTemplateColumns: `80px repeat(${weekDates.length}, 1fr)` }}
             >
