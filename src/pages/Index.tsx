@@ -1,9 +1,9 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useRooms } from "@/hooks/useRooms";
 import { useWeekBookings, useBlockedSlots, useBookingsRealtime } from "@/hooks/useBookings";
 import BookingModal from "@/components/BookingModal";
 import { Button } from "@/components/ui/button";
-import { ChevronLeft, ChevronRight, Plus, CircleCheck } from "lucide-react";
+import { ChevronLeft, ChevronRight, Plus, CircleCheck, CircleX } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -55,6 +55,9 @@ const toMinutes = (time: string) => {
   const [hours, minutes] = time.split(":").map(Number);
   return hours * 60 + minutes;
 };
+
+const minToLabel = (mins: number) =>
+  `${String(Math.floor(mins / 60)).padStart(2, "0")}:${String(mins % 60).padStart(2, "0")}`;
 
 const overlapsHour = (startTime: string, endTime: string, hour: number) => {
   const slotStart = hour * 60;
