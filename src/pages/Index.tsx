@@ -142,6 +142,29 @@ const Index = () => {
   const todayStr = formatDate(now);
   const nowMin = now.getHours() * 60 + now.getMinutes();
 
+  const calendarRef = useRef<HTMLDivElement>(null);
+
+  // Auto-scroll the calendar so the current hour is visible when viewing
+  // this week. Past hours end up above the viewport, making it easy to book now.
+  useEffect(() => {
+    if (!calendarRef.current) return;
+    const isThisWeek = weekDates.some((d) => formatDate(d) === todayStr);
+    if (!isThisWeek) {
+      calendarRef.current.scrollTo({ top: 0, behavior: "auto" });
+      return;
+    }
+    const currentHour = now.getHours();
+    const targetRow = calendarRef.current.querySelector(`[data-hour="${currentHour}"]`);
+    if (targetRow) {
+      const rowTop = (targetRow as HTMLElement).offsetTop;
+      const headerHeight = 48;
+      calendarRef.current.scrollTo({
+        top: Math.max(0, rowTop - headerHeight),
+        behavior: "smooth",
+      });
+    }
+  }, [startDate, endDate]);
+
   const roomStatuses = useMemo(() => {
     if (!rooms) return [] as Array<{ id: string; name: string; free: boolean; until: string | null; label: string }>;
     return rooms.map((r) => {
