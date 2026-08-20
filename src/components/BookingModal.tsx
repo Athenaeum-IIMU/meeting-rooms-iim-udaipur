@@ -182,7 +182,7 @@ const BookingModal = ({ open, onClose, defaultDate, defaultTime, defaultEndTime,
   const resetForm = () => {
     setTitle("");
     setRoomId("");
-    setDate(today.toISOString().split("T")[0]);
+    setDate(todayStr);
     setStartTime("09:00");
     setEndTime("10:00");
     setMembers([]);
@@ -244,8 +244,8 @@ const BookingModal = ({ open, onClose, defaultDate, defaultTime, defaultEndTime,
               type="date"
               value={date}
               onChange={(e) => setDate(e.target.value)}
-              min={today.toISOString().split("T")[0]}
-              max={maxDate.toISOString().split("T")[0]}
+              min={todayStr}
+              max={maxDateStr}
               required
             />
             <p className="text-xs text-muted-foreground">Max 1 day in advance (today or tomorrow)</p>
