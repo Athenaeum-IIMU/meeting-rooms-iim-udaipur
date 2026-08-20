@@ -128,31 +128,68 @@ const Index = () => {
 
   const filteredRooms = selectedRoom ? rooms?.filter((r) => r.id === selectedRoom) : rooms;
 
-  // Compute "rooms free right now" for today
-  const now = new Date();
+  // Live "available right now" status, refreshed every 30s
+  const [nowTick, setNowTick] = useState(() => new Date());
+  useEffect(() => {
+    const t = setInterval(() => setNowTick(new Date()), 30_000);
+    return () => clearInterval(t);
+  }, []);
+  const now = nowTick;
   const todayStr = formatDate(now);
   const currentHour = now.getHours();
-  const roomsFreeNow = useMemo(() => {
-    if (!rooms) return { free: 0, total: 0, freeNames: [] as string[] };
-    const freeNames: string[] = [];
-    for (const r of rooms) {
-      const occupied = bookings?.some(
-        (b) =>
+  const nowMin = now.getHours() * 60 + now.getMinutes();
+
+  const roomStatuses = useMemo(() => {
+    if (!rooms) return [] as Array<{ id: string; name: string; free: boolean; until: string | null; label: string }>;
+    return rooms.map((r) => {
+      const busySpans: Array<[number, number, string]> = [];
+      bookings?.forEach((b) => {
+        if (
           b.room_id === r.id &&
           b.date === todayStr &&
-          ["approved", "pending_admin", "pending_members"].includes(b.status) &&
-          overlapsHour(b.start_time, b.end_time, currentHour)
-      );
-      const blocked = blockedSlots?.some(
-        (bs) =>
-          bs.room_id === r.id &&
-          bs.date === todayStr &&
-          overlapsHour(bs.start_time, bs.end_time, currentHour)
-      );
-      if (!occupied && !blocked) freeNames.push(r.name);
-    }
-    return { free: freeNames.length, total: rooms.length, freeNames };
-  }, [rooms, bookings, blockedSlots, todayStr, currentHour]);
+          ["approved", "pending_admin", "pending_members"].includes(b.status)
+        ) {
+          busySpans.push([toMinutes(b.start_time), toMinutes(b.end_time), "In use"]);
+        }
+      });
+      blockedSlots?.forEach((bs: any) => {
+        if (bs.room_id === r.id && bs.date === todayStr) {
+          busySpans.push([toMinutes(bs.start_time), toMinutes(bs.end_time), "Blocked"]);
+        }
+      });
+      const current = busySpans.find(([s, e]) => s <= nowMin && e > nowMin);
+      if (current) {
+        return {
+          id: r.id,
+          name: r.name,
+          free: false,
+          until: minToLabel(current[1]),
+          label: current[2],
+        };
+      }
+      const nextStart = busySpans
+        .map(([s]) => s)
+        .filter((s) => s > nowMin)
+        .sort((a, b) => a - b)[0];
+      return {
+        id: r.id,
+        name: r.name,
+        free: true,
+        until: nextStart !== undefined ? minToLabel(nextStart) : null,
+        label: "Available",
+      };
+    });
+  }, [rooms, bookings, blockedSlots, todayStr, nowMin]);
+
+  const roomsFreeNow = useMemo(
+    () => ({
+      free: roomStatuses.filter((r) => r.free).length,
+      total: roomStatuses.length,
+      freeNames: roomStatuses.filter((r) => r.free).map((r) => r.name),
+    }),
+    [roomStatuses]
+  );
+
 
   const prevWeek = () => {
     const d = new Date(baseDate);
