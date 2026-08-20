@@ -434,7 +434,10 @@ const Index = () => {
         <span className="flex items-center gap-1"><span className="h-3 w-3 rounded border-2 border-destructive bg-destructive/25" /> Blocked</span>
       </div>
 
-      <div ref={calendarRef} className="overflow-auto rounded-lg border bg-card">
+      <div
+        ref={calendarRef}
+        className="overflow-auto rounded-lg border bg-card max-h-[60vh] md:max-h-[65vh]"
+      >
         <div className="min-w-[800px]">
           {/* Header - sticky so it stays visible while scrolling */}
           <div
