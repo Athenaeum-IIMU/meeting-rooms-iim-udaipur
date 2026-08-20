@@ -286,23 +286,70 @@ const Index = () => {
   return (
     <div className="space-y-4">
       {rooms && rooms.length > 0 && (
-        <div className="flex flex-wrap items-center gap-2 rounded-lg border bg-card p-3 text-sm">
-          <CircleCheck
-            className={cn(
-              "h-4 w-4",
-              roomsFreeNow.free > 0 ? "text-green-600" : "text-muted-foreground"
-            )}
-          />
-          <span className="font-medium">
-            {roomsFreeNow.free} of {roomsFreeNow.total} rooms free right now
-          </span>
-          {roomsFreeNow.freeNames.length > 0 && (
-            <span className="text-muted-foreground">
-              · {roomsFreeNow.freeNames.join(", ")}
-            </span>
+        <div
+          className={cn(
+            "sticky top-2 z-20 rounded-xl border-2 p-4 shadow-md backdrop-blur",
+            roomsFreeNow.free > 0
+              ? "border-green-500/60 bg-green-500/10"
+              : "border-destructive/50 bg-destructive/10"
           )}
+        >
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="relative flex h-3 w-3">
+              {roomsFreeNow.free > 0 && (
+                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-green-500 opacity-75" />
+              )}
+              <span
+                className={cn(
+                  "relative inline-flex h-3 w-3 rounded-full",
+                  roomsFreeNow.free > 0 ? "bg-green-600" : "bg-destructive"
+                )}
+              />
+            </span>
+            <h2 className="text-base font-bold sm:text-lg">
+              {roomsFreeNow.free > 0
+                ? `${roomsFreeNow.free} of ${roomsFreeNow.total} rooms available right now`
+                : "All rooms are busy right now"}
+            </h2>
+            <span className="ml-auto text-xs text-muted-foreground">
+              as of {minToLabel(nowMin)} IST
+            </span>
+          </div>
+
+          <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-4">
+            {roomStatuses.map((r) => (
+              <button
+                key={r.id}
+                type="button"
+                onClick={() => setSelectedRoom(r.id)}
+                className={cn(
+                  "rounded-lg border-2 p-2 text-left transition hover:brightness-95",
+                  r.free
+                    ? "border-green-500/70 bg-green-500/15"
+                    : "border-destructive/50 bg-destructive/10"
+                )}
+              >
+                <div className="flex items-center gap-1.5">
+                  {r.free ? (
+                    <CircleCheck className="h-4 w-4 shrink-0 text-green-700" />
+                  ) : (
+                    <CircleX className="h-4 w-4 shrink-0 text-destructive" />
+                  )}
+                  <span className="truncate text-sm font-semibold">{r.name}</span>
+                </div>
+                <p className="mt-0.5 text-[11px] leading-tight text-muted-foreground">
+                  {r.free
+                    ? r.until
+                      ? `Free until ${r.until}`
+                      : "Free for the rest of the day"
+                    : `${r.label} till ${r.until}`}
+                </p>
+              </button>
+            ))}
+          </div>
         </div>
       )}
+
 
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-2">
