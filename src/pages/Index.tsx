@@ -350,9 +350,19 @@ const Index = () => {
                 ? `${roomsFreeNow.free} of ${roomsFreeNow.total} rooms available right now`
                 : "All rooms are busy right now"}
             </h2>
-            <span className="ml-auto text-xs text-muted-foreground">
-              as of {minToLabel(nowMin)} IST
-            </span>
+            <div className="ml-auto flex items-center gap-2">
+              <span className="text-xs text-muted-foreground">
+                as of {lastRefreshedAt.toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit", hour12: false })} IST
+              </span>
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-7 gap-1 text-xs"
+                onClick={refreshStatus}
+              >
+                <RefreshCw className="h-3.5 w-3.5" /> Refresh now
+              </Button>
+            </div>
           </div>
 
           <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-4">
