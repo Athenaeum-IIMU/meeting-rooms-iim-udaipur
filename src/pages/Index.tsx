@@ -131,18 +131,10 @@ const Index = () => {
 
   const filteredRooms = selectedRoom ? rooms?.filter((r) => r.id === selectedRoom) : rooms;
 
-  // Live "available right now" status, refreshed every 30 minutes to keep
-  // Cloud compute usage low. Realtime still pushes booking changes instantly.
+  // Status is no longer refreshed automatically; users must press the
+  // "Refresh now" button to update the availability panel.
   const [nowTick, setNowTick] = useState(() => new Date());
   const [lastRefreshedAt, setLastRefreshedAt] = useState(() => new Date());
-  useEffect(() => {
-    const t = setInterval(() => {
-      const now = new Date();
-      setNowTick(now);
-      setLastRefreshedAt(now);
-    }, 30 * 60 * 1000);
-    return () => clearInterval(t);
-  }, []);
   const refreshStatus = () => {
     const now = new Date();
     setNowTick(now);
