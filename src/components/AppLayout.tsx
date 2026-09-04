@@ -83,14 +83,15 @@ const AppLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
       </header>
 
       {location.pathname !== "/admin" && (
-        <div className="flex items-center justify-center gap-2 border-b py-2 text-[10px] text-muted-foreground/60">
+        <div className="flex items-center justify-center gap-2 border-b bg-muted/40 py-2 text-xs font-medium text-foreground/80 sm:text-sm">
           <img
             src={athenaeumLogo.url}
             alt="Athenaeum Logo"
-            className="h-5 w-5 opacity-60"
+            className="h-6 w-6 sm:h-7 sm:w-7"
           />
-          <span>Developed by Athenaeum — Library Committee, IIMU</span>
+          <span className="tracking-wide">Developed by Athenaeum — Library Committee, IIMU</span>
         </div>
+
       )}
 
       <main className="container mx-auto px-4 py-6">{children}</main>
