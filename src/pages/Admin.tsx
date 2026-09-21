@@ -15,7 +15,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { useRooms } from "@/hooks/useRooms";
 import { useBookingsRealtime } from "@/hooks/useBookings";
 import { useToast } from "@/hooks/use-toast";
-import { Check, X, Shield, Ban, CalendarDays, Clock, MapPin, Users, Pencil, Trash2 } from "lucide-react";
+import { Check, X, Shield, Ban, CalendarDays, Clock, MapPin, Users, Pencil, Trash2, Plus } from "lucide-react";
 import AdminEditBookingModal from "@/components/AdminEditBookingModal";
 import AdminRoomsTab from "@/components/AdminRoomsTab";
 import AdminUsersTab from "@/components/AdminUsersTab";
@@ -585,7 +585,7 @@ const Admin = () => {
 
         <TabsContent value="blocked" className="space-y-3 mt-4">
           <Button onClick={() => { setEditingBlockedSlot(null); setBlockModalOpen(true); }} className="gap-1">
-            <Ban className="h-4 w-4" /> Block a Slot
+            <Ban className="h-4 w-4" /> Block rooms
           </Button>
 
           {blockedSlots?.map((slot) => (
@@ -780,67 +780,132 @@ const BlockSlotModal = ({
 }) => {
   const queryClient = useQueryClient();
   const { toast } = useToast();
-  const [roomId, setRoomId] = useState("");
-  const [date, setDate] = useState("");
-  const [startTime, setStartTime] = useState("09:00");
-  const [endTime, setEndTime] = useState("17:00");
-  const [reason, setReason] = useState("");
+  type BlockEntry = {
+    key: string;
+    roomId: string;
+    date: string;
+    startTime: string;
+    endTime: string;
+    reason: string;
+  };
+
+  const makeEntry = (overrides: Partial<BlockEntry> = {}): BlockEntry => ({
+    key: crypto.randomUUID(),
+    roomId: "",
+    date: "",
+    startTime: "09:00",
+    endTime: "17:00",
+    reason: "",
+    ...overrides,
+  });
+
+  const [entries, setEntries] = useState<BlockEntry[]>([makeEntry()]);
 
   useEffect(() => {
     if (!open) return;
     if (editingSlot) {
-      setRoomId(editingSlot.room_id);
-      setDate(editingSlot.date);
-      setStartTime(editingSlot.start_time.slice(0, 5));
-      setEndTime(editingSlot.end_time.slice(0, 5));
-      setReason(editingSlot.reason || "");
+      setEntries([makeEntry({
+        roomId: editingSlot.room_id,
+        date: editingSlot.date,
+        startTime: editingSlot.start_time.slice(0, 5),
+        endTime: editingSlot.end_time.slice(0, 5),
+        reason: editingSlot.reason || "",
+      })]);
     } else {
-      setRoomId("");
-      setDate("");
-      setStartTime("09:00");
-      setEndTime("17:00");
-      setReason("");
+      setEntries([makeEntry()]);
     }
   }, [open, editingSlot]);
 
+  const updateEntry = (key: string, changes: Partial<BlockEntry>) => {
+    setEntries((current) => current.map((entry) => (
+      entry.key === key ? { ...entry, ...changes } : entry
+    )));
+  };
+
+  const addEntry = () => {
+    const previous = entries[entries.length - 1];
+    setEntries((current) => [...current, makeEntry({
+      date: previous?.date || "",
+      startTime: previous?.startTime || "09:00",
+      endTime: previous?.endTime || "17:00",
+      reason: previous?.reason || "",
+    })]);
+  };
+
   const blockSlot = useMutation({
     mutationFn: async () => {
+      const invalidEntry = entries.find((entry) => (
+        !entry.roomId || !entry.date || !entry.startTime || !entry.endTime || entry.startTime >= entry.endTime
+      ));
+      if (invalidEntry) {
+        throw new Error("Choose a room and valid start and end times for every entry.");
+      }
+
       if (editingSlot) {
+        const entry = entries[0];
+        if (!entry) throw new Error("The blocked slot details are missing.");
         const { error } = await supabase
           .from("blocked_slots")
-          .update({ room_id: roomId, date, start_time: startTime, end_time: endTime, reason })
+          .update({
+            room_id: entry.roomId,
+            date: entry.date,
+            start_time: entry.startTime,
+            end_time: entry.endTime,
+            reason: entry.reason,
+          })
           .eq("id", editingSlot.id);
         if (error) throw error;
-        return;
+        return { blockedCount: 1, cancelledCount: 0 };
       }
-      // First block the slot
+
       const { error } = await supabase
         .from("blocked_slots")
-        .insert({ room_id: roomId, date, start_time: startTime, end_time: endTime, reason, created_by: userId });
+        .insert(entries.map((entry) => ({
+          room_id: entry.roomId,
+          date: entry.date,
+          start_time: entry.startTime,
+          end_time: entry.endTime,
+          reason: entry.reason,
+          created_by: userId,
+        })));
       if (error) throw error;
 
-      // Cancel any existing bookings that overlap
-      const { data: overlapping } = await supabase
-        .from("bookings")
-        .select("id")
-        .eq("room_id", roomId)
-        .eq("date", date)
-        .in("status", ["pending_members", "pending_admin", "approved"])
-        .lt("start_time", endTime)
-        .gt("end_time", startTime);
-
-      if (overlapping && overlapping.length > 0) {
-        for (const booking of overlapping) {
-          await supabase.from("bookings").update({ status: "cancelled" }).eq("id", booking.id);
-        }
-        toast({ title: `${overlapping.length} overlapping booking(s) cancelled.` });
+      const overlappingIds = new Set<string>();
+      for (const entry of entries) {
+        const { data: overlapping, error: overlapError } = await supabase
+          .from("bookings")
+          .select("id")
+          .eq("room_id", entry.roomId)
+          .eq("date", entry.date)
+          .in("status", ["pending_members", "pending_admin", "approved"])
+          .lt("start_time", entry.endTime)
+          .gt("end_time", entry.startTime);
+        if (overlapError) throw overlapError;
+        overlapping?.forEach((booking) => overlappingIds.add(booking.id));
       }
+
+      if (overlappingIds.size > 0) {
+        const { error: cancelError } = await supabase
+          .from("bookings")
+          .update({ status: "cancelled" })
+          .in("id", Array.from(overlappingIds));
+        if (cancelError) throw cancelError;
+      }
+
+      return { blockedCount: entries.length, cancelledCount: overlappingIds.size };
     },
-    onSuccess: () => {
+    onSuccess: ({ blockedCount, cancelledCount }) => {
       queryClient.invalidateQueries({ queryKey: ["admin-blocked-slots"] });
       queryClient.invalidateQueries({ queryKey: ["bookings"] });
       queryClient.invalidateQueries({ queryKey: ["blocked_slots"] });
-      toast({ title: editingSlot ? "Blocked slot updated" : "Slot blocked successfully" });
+      toast({
+        title: editingSlot
+          ? "Blocked slot updated"
+          : `${blockedCount} ${blockedCount === 1 ? "room" : "rooms"} blocked`,
+        description: cancelledCount > 0
+          ? `${cancelledCount} overlapping ${cancelledCount === 1 ? "booking was" : "bookings were"} cancelled.`
+          : undefined,
+      });
       onClose();
     },
     onError: (e: Error) => {
@@ -850,9 +915,9 @@ const BlockSlotModal = ({
 
   return (
     <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-2xl">
         <DialogHeader>
-          <DialogTitle>{editingSlot ? "Edit Blocked Slot" : "Block a Time Slot"}</DialogTitle>
+          <DialogTitle>{editingSlot ? "Edit blocked slot" : "Block rooms"}</DialogTitle>
         </DialogHeader>
         <form
           onSubmit={(e) => {
@@ -861,37 +926,71 @@ const BlockSlotModal = ({
           }}
           className="space-y-4"
         >
-          <div className="space-y-2">
-            <Label>Room</Label>
-            <Select value={roomId} onValueChange={setRoomId} required>
-              <SelectTrigger><SelectValue placeholder="Select room" /></SelectTrigger>
-              <SelectContent>
-                {rooms.map((r) => (
-                  <SelectItem key={r.id} value={r.id}>{r.name}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+          <div className="space-y-3">
+            {entries.map((entry, index) => (
+              <div key={entry.key} className="space-y-3 rounded-md border border-border p-3">
+                <div className="flex items-center justify-between gap-3">
+                  <p className="text-sm font-medium">{editingSlot ? "Blocked slot" : `Room ${index + 1}`}</p>
+                  {!editingSlot && entries.length > 1 && (
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8 text-destructive hover:text-destructive"
+                      onClick={() => setEntries((current) => current.filter((item) => item.key !== entry.key))}
+                      title="Remove this entry"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  )}
+                </div>
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <div className="space-y-2">
+                    <Label>Room</Label>
+                    <Select value={entry.roomId} onValueChange={(roomId) => updateEntry(entry.key, { roomId })} required>
+                      <SelectTrigger><SelectValue placeholder="Select room" /></SelectTrigger>
+                      <SelectContent>
+                        {rooms.map((room) => (
+                          <SelectItem key={room.id} value={room.id}>{room.name}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Date</Label>
+                    <Input type="date" value={entry.date} onChange={(e) => updateEntry(entry.key, { date: e.target.value })} required />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Start</Label>
+                    <Input type="time" value={entry.startTime} onChange={(e) => updateEntry(entry.key, { startTime: e.target.value })} required />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>End</Label>
+                    <Input type="time" value={entry.endTime} onChange={(e) => updateEntry(entry.key, { endTime: e.target.value })} required />
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <Label>Reason (optional)</Label>
+                  <Input
+                    value={entry.reason}
+                    onChange={(e) => updateEntry(entry.key, { reason: e.target.value })}
+                    placeholder="Maintenance, event, etc."
+                  />
+                </div>
+              </div>
+            ))}
           </div>
-          <div className="space-y-2">
-            <Label>Date</Label>
-            <Input type="date" value={date} onChange={(e) => setDate(e.target.value)} required />
-          </div>
-          <div className="grid grid-cols-2 gap-3">
-            <div className="space-y-2">
-              <Label>Start</Label>
-              <Input type="time" value={startTime} onChange={(e) => setStartTime(e.target.value)} required />
-            </div>
-            <div className="space-y-2">
-              <Label>End</Label>
-              <Input type="time" value={endTime} onChange={(e) => setEndTime(e.target.value)} required />
-            </div>
-          </div>
-          <div className="space-y-2">
-            <Label>Reason (optional)</Label>
-            <Input value={reason} onChange={(e) => setReason(e.target.value)} placeholder="Maintenance, event, etc." />
-          </div>
+          {!editingSlot && (
+            <Button type="button" variant="outline" className="w-full gap-2" onClick={addEntry}>
+              <Plus className="h-4 w-4" /> Add another room or time
+            </Button>
+          )}
           <Button type="submit" className="w-full" disabled={blockSlot.isPending}>
-            {blockSlot.isPending ? "Saving..." : editingSlot ? "Save Changes" : "Block Slot"}
+            {blockSlot.isPending
+              ? "Saving..."
+              : editingSlot
+                ? "Save changes"
+                : `Block ${entries.length} ${entries.length === 1 ? "room" : "rooms"}`}
           </Button>
         </form>
       </DialogContent>
