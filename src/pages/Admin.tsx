@@ -95,15 +95,13 @@ const Admin = () => {
     enabled: isAdmin,
   });
 
-  // Fetch profiles for booking owners and blocked-slot creators separately
-  // (their foreign keys point to auth.users, so embeds aren't available).
+  // Fetch profiles for booking owners separately (FK points to auth.users, so embed isn't possible)
   const ownerIds = useMemo(() => {
     const ids = new Set<string>();
     (pendingBookings || []).forEach((b: any) => b.user_id && ids.add(b.user_id));
     (allBookings || []).forEach((b: any) => b.user_id && ids.add(b.user_id));
-    (blockedSlots || []).forEach((slot: any) => slot.created_by && ids.add(slot.created_by));
     return Array.from(ids);
-  }, [pendingBookings, allBookings, blockedSlots]);
+  }, [pendingBookings, allBookings]);
 
   const { data: ownerProfiles } = useQuery({
     queryKey: ["admin-owner-profiles", ownerIds],
@@ -136,6 +134,29 @@ const Admin = () => {
     },
     enabled: isAdmin,
   });
+
+  const blockedSlotCreatorIds = useMemo(
+    () => Array.from(new Set((blockedSlots || []).map((slot) => slot.created_by))),
+    [blockedSlots]
+  );
+
+  const { data: blockedSlotCreatorProfiles } = useQuery({
+    queryKey: ["admin-blocked-slot-creators", blockedSlotCreatorIds],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("user_id, full_name, email")
+        .in("user_id", blockedSlotCreatorIds);
+      if (error) throw error;
+      return data;
+    },
+    enabled: isAdmin && blockedSlotCreatorIds.length > 0,
+  });
+
+  const blockedSlotCreatorById = useMemo(
+    () => new Map((blockedSlotCreatorProfiles || []).map((profile) => [profile.user_id, profile])),
+    [blockedSlotCreatorProfiles]
+  );
 
   // Audit log
   const { data: auditLog } = useQuery({
@@ -600,9 +621,9 @@ const Admin = () => {
                   </span>
                   {slot.reason && <div className="text-xs text-muted-foreground truncate">{slot.reason}</div>}
                   <div className="text-xs text-muted-foreground mt-0.5">
-                    Blocked by: {ownerById.get(slot.created_by)?.full_name || ownerById.get(slot.created_by)?.email || "Unknown admin"}
-                    {ownerById.get(slot.created_by)?.full_name && ownerById.get(slot.created_by)?.email
-                      ? ` (${ownerById.get(slot.created_by)?.email})`
+                    Blocked by: {blockedSlotCreatorById.get(slot.created_by)?.full_name || blockedSlotCreatorById.get(slot.created_by)?.email || "Unknown admin"}
+                    {blockedSlotCreatorById.get(slot.created_by)?.full_name && blockedSlotCreatorById.get(slot.created_by)?.email
+                      ? ` (${blockedSlotCreatorById.get(slot.created_by)?.email})`
                       : ""}
                   </div>
                   {slot.created_at && (
