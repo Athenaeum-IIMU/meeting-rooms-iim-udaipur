@@ -95,13 +95,15 @@ const Admin = () => {
     enabled: isAdmin,
   });
 
-  // Fetch profiles for booking owners separately (FK points to auth.users, so embed isn't possible)
+  // Fetch profiles for booking owners and blocked-slot creators separately
+  // (their foreign keys point to auth.users, so embeds aren't available).
   const ownerIds = useMemo(() => {
     const ids = new Set<string>();
     (pendingBookings || []).forEach((b: any) => b.user_id && ids.add(b.user_id));
     (allBookings || []).forEach((b: any) => b.user_id && ids.add(b.user_id));
+    (blockedSlots || []).forEach((slot: any) => slot.created_by && ids.add(slot.created_by));
     return Array.from(ids);
-  }, [pendingBookings, allBookings]);
+  }, [pendingBookings, allBookings, blockedSlots]);
 
   const { data: ownerProfiles } = useQuery({
     queryKey: ["admin-owner-profiles", ownerIds],
@@ -597,6 +599,12 @@ const Admin = () => {
                     • {slot.date} • {slot.start_time.slice(0, 5)}–{slot.end_time.slice(0, 5)}
                   </span>
                   {slot.reason && <div className="text-xs text-muted-foreground truncate">{slot.reason}</div>}
+                  <div className="text-xs text-muted-foreground mt-0.5">
+                    Blocked by: {ownerById.get(slot.created_by)?.full_name || ownerById.get(slot.created_by)?.email || "Unknown admin"}
+                    {ownerById.get(slot.created_by)?.full_name && ownerById.get(slot.created_by)?.email
+                      ? ` (${ownerById.get(slot.created_by)?.email})`
+                      : ""}
+                  </div>
                   {slot.created_at && (
                     <div className="text-[11px] text-muted-foreground/80 mt-0.5">
                       Blocked on {new Date(slot.created_at).toLocaleString()}
