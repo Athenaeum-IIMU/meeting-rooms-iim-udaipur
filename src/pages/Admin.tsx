@@ -135,6 +135,29 @@ const Admin = () => {
     enabled: isAdmin,
   });
 
+  const blockedSlotCreatorIds = useMemo(
+    () => Array.from(new Set((blockedSlots || []).map((slot) => slot.created_by))),
+    [blockedSlots]
+  );
+
+  const { data: blockedSlotCreatorProfiles } = useQuery({
+    queryKey: ["admin-blocked-slot-creators", blockedSlotCreatorIds],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("user_id, full_name, email")
+        .in("user_id", blockedSlotCreatorIds);
+      if (error) throw error;
+      return data;
+    },
+    enabled: isAdmin && blockedSlotCreatorIds.length > 0,
+  });
+
+  const blockedSlotCreatorById = useMemo(
+    () => new Map((blockedSlotCreatorProfiles || []).map((profile) => [profile.user_id, profile])),
+    [blockedSlotCreatorProfiles]
+  );
+
   // Audit log
   const { data: auditLog } = useQuery({
     queryKey: ["admin-audit-log"],
@@ -597,6 +620,12 @@ const Admin = () => {
                     • {slot.date} • {slot.start_time.slice(0, 5)}–{slot.end_time.slice(0, 5)}
                   </span>
                   {slot.reason && <div className="text-xs text-muted-foreground truncate">{slot.reason}</div>}
+                  <div className="text-xs text-muted-foreground mt-0.5">
+                    Blocked by: {blockedSlotCreatorById.get(slot.created_by)?.full_name || blockedSlotCreatorById.get(slot.created_by)?.email || "Unknown admin"}
+                    {blockedSlotCreatorById.get(slot.created_by)?.full_name && blockedSlotCreatorById.get(slot.created_by)?.email
+                      ? ` (${blockedSlotCreatorById.get(slot.created_by)?.email})`
+                      : ""}
+                  </div>
                   {slot.created_at && (
                     <div className="text-[11px] text-muted-foreground/80 mt-0.5">
                       Blocked on {new Date(slot.created_at).toLocaleString()}
