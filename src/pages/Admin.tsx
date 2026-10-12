@@ -936,6 +936,8 @@ const BlockSlotModal = ({
       queryClient.invalidateQueries({ queryKey: ["admin-blocked-slots"] });
       queryClient.invalidateQueries({ queryKey: ["bookings"] });
       queryClient.invalidateQueries({ queryKey: ["blocked_slots"] });
+      blockDraftEntries = null;
+      setEntries([makeEntry()]);
       toast({
         title: editingSlot
           ? "Blocked slot updated"
