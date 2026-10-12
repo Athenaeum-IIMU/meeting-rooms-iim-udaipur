@@ -794,6 +794,28 @@ const Admin = () => {
   );
 };
 
+type BlockEntry = {
+  key: string;
+  roomId: string;
+  date: string;
+  startTime: string;
+  endTime: string;
+  reason: string;
+};
+
+const makeEntry = (overrides: Partial<BlockEntry> = {}): BlockEntry => ({
+  key: crypto.randomUUID(),
+  roomId: "",
+  date: "",
+  startTime: "09:00",
+  endTime: "17:00",
+  reason: "",
+  ...overrides,
+});
+
+// Draft survives tab switches / modal unmounts; cleared only on successful submit.
+let blockDraftEntries: BlockEntry[] | null = null;
+
 const BlockSlotModal = ({
   open,
   onClose,
@@ -809,26 +831,8 @@ const BlockSlotModal = ({
 }) => {
   const queryClient = useQueryClient();
   const { toast } = useToast();
-  type BlockEntry = {
-    key: string;
-    roomId: string;
-    date: string;
-    startTime: string;
-    endTime: string;
-    reason: string;
-  };
 
-  const makeEntry = (overrides: Partial<BlockEntry> = {}): BlockEntry => ({
-    key: crypto.randomUUID(),
-    roomId: "",
-    date: "",
-    startTime: "09:00",
-    endTime: "17:00",
-    reason: "",
-    ...overrides,
-  });
-
-  const [entries, setEntries] = useState<BlockEntry[]>([makeEntry()]);
+  const [entries, setEntries] = useState<BlockEntry[]>(() => blockDraftEntries ?? [makeEntry()]);
 
   useEffect(() => {
     if (!open) return;
@@ -841,9 +845,14 @@ const BlockSlotModal = ({
         reason: editingSlot.reason || "",
       })]);
     } else {
-      setEntries([makeEntry()]);
+      setEntries(blockDraftEntries ?? [makeEntry()]);
     }
   }, [open, editingSlot]);
+
+  // Keep the draft in sync so switching tabs and coming back restores progress.
+  useEffect(() => {
+    if (!editingSlot) blockDraftEntries = entries;
+  }, [entries, editingSlot]);
 
   const updateEntry = (key: string, changes: Partial<BlockEntry>) => {
     setEntries((current) => current.map((entry) => (
